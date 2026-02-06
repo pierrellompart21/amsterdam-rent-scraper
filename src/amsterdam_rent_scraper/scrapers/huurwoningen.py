@@ -27,7 +27,8 @@ class HuurwoningenScraper(BaseScraper):
         """Scrape search results to get all listing URLs."""
         urls = []
         page = 1
-        max_pages = 2 if self.test_mode else 50
+        # In full mode, paginate until no more results (up to 500 pages safety limit)
+        max_pages = 2 if self.test_mode else 500
 
         while page <= max_pages:
             search_url = self.get_search_url(page)
@@ -72,6 +73,10 @@ class HuurwoningenScraper(BaseScraper):
                         urls.append(url)
 
                 console.print(f"  Page {page}: found {len(listing_links_found)} links")
+
+                # Stop if we have enough listings
+                if len(urls) >= self.max_listings:
+                    break
 
                 # Check for next page
                 next_link = soup.select_one(f'a[href*="page={page + 1}"]')

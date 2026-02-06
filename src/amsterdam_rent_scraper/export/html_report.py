@@ -109,11 +109,23 @@ HTML_TEMPLATE = """
                 </div>
                 <div class="filter-group">
                     <label>Min Rooms</label>
-                    <input type="number" id="minRooms" placeholder="1">
+                    <input type="number" id="minRooms" placeholder="2" value="2">
+                </div>
+                <div class="filter-group">
+                    <label>Min Surface (m²)</label>
+                    <input type="number" id="minSurface" placeholder="60" value="60">
                 </div>
                 <div class="filter-group">
                     <label>Max Distance (km)</label>
-                    <input type="number" id="maxDistance" placeholder="10">
+                    <input type="number" id="maxDistance" placeholder="15">
+                </div>
+                <div class="filter-group">
+                    <label>Max Bike (min)</label>
+                    <input type="number" id="maxBikeTime" placeholder="30">
+                </div>
+                <div class="filter-group">
+                    <label>Max Transit (min)</label>
+                    <input type="number" id="maxTransitTime" placeholder="45">
                 </div>
                 <div class="filter-group">
                     <label>Furnished</label>
@@ -181,7 +193,9 @@ HTML_TEMPLATE = """
                     <th data-sort="rooms">Rooms</th>
                     <th data-sort="furnished">Furnished</th>
                     <th data-sort="available_date">Available</th>
-                    <th data-sort="distance_km">Distance</th>
+                    <th data-sort="distance_km">Dist.</th>
+                    <th data-sort="commute_time_bike_min">Bike</th>
+                    <th data-sort="commute_time_transit_min">Transit</th>
                     <th>Summary</th>
                     <th>Link</th>
                 </tr>
@@ -306,6 +320,8 @@ HTML_TEMPLATE = """
                     <td>${listing.furnished ? `<span class="tag tag-${listing.furnished.toLowerCase()}">${listing.furnished}</span>` : '-'}</td>
                     <td>${listing.available_date || '-'}</td>
                     <td>${listing.distance_km ? listing.distance_km.toFixed(1) + ' km' : '-'}</td>
+                    <td>${listing.commute_time_bike_min ? listing.commute_time_bike_min + ' min' : '-'}</td>
+                    <td>${listing.commute_time_transit_min ? listing.commute_time_transit_min + ' min' : '-'}</td>
                     <td class="summary">${listing.description_summary || '-'}</td>
                     <td><a href="${listing.listing_url}" target="_blank" class="url-link">View</a></td>
                 `;
@@ -329,14 +345,20 @@ HTML_TEMPLATE = """
             const minPrice = parseInt(document.getElementById('minPrice').value) || 0;
             const maxPrice = parseInt(document.getElementById('maxPrice').value) || 99999;
             const minRooms = parseInt(document.getElementById('minRooms').value) || 0;
+            const minSurface = parseInt(document.getElementById('minSurface').value) || 0;
             const maxDistance = parseFloat(document.getElementById('maxDistance').value) || 99999;
+            const maxBikeTime = parseInt(document.getElementById('maxBikeTime').value) || 99999;
+            const maxTransitTime = parseInt(document.getElementById('maxTransitTime').value) || 99999;
             const furnished = document.getElementById('furnished').value;
             const source = document.getElementById('source').value;
 
             return listings.filter(l => {
                 if (l.price_eur && (l.price_eur < minPrice || l.price_eur > maxPrice)) return false;
                 if (l.rooms && l.rooms < minRooms) return false;
+                if (l.surface_m2 && l.surface_m2 < minSurface) return false;
                 if (l.distance_km && l.distance_km > maxDistance) return false;
+                if (l.commute_time_bike_min && l.commute_time_bike_min > maxBikeTime) return false;
+                if (l.commute_time_transit_min && l.commute_time_transit_min > maxTransitTime) return false;
                 if (furnished && l.furnished !== furnished) return false;
                 if (source && l.source_site !== source) return false;
                 return true;
@@ -373,8 +395,11 @@ HTML_TEMPLATE = """
         function resetFilters() {
             document.getElementById('minPrice').value = '1000';
             document.getElementById('maxPrice').value = '2000';
-            document.getElementById('minRooms').value = '';
+            document.getElementById('minRooms').value = '2';
+            document.getElementById('minSurface').value = '60';
             document.getElementById('maxDistance').value = '';
+            document.getElementById('maxBikeTime').value = '';
+            document.getElementById('maxTransitTime').value = '';
             document.getElementById('furnished').value = '';
             document.getElementById('source').value = '';
             applyFilters();

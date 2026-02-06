@@ -36,6 +36,12 @@ def scrape(
     apartments_only: bool = typer.Option(
         False, "--apartments-only", "-a", help="Filter out rooms/shared housing"
     ),
+    min_surface: int = typer.Option(
+        None, "--min-surface", help="Minimum surface area in m²"
+    ),
+    min_rooms: int = typer.Option(
+        None, "--min-rooms", help="Minimum number of rooms"
+    ),
     ollama_model: str = typer.Option(
         "llama3", "--model", "-m", help="Ollama model name"
     ),
@@ -57,18 +63,6 @@ def scrape(
         for s in sites:
             site_filter.extend(s.split(","))
 
-    mode = "test" if test_run else "full"
-    console.print(f"[bold]Amsterdam Rent Scraper - {mode} mode[/]")
-    console.print(f"   Price range: EUR {min_price} - {max_price}")
-    console.print(f"   Output: {output_dir}")
-    if site_filter:
-        console.print(f"   Sites: {', '.join(site_filter)}")
-    if max_listings:
-        console.print(f"   Max listings per site: {max_listings}")
-
-    if apartments_only:
-        console.print("   Filter: apartments only (no rooms/shared)")
-
     run_pipeline(
         test_mode=test_run,
         site_filter=site_filter,
@@ -78,6 +72,8 @@ def scrape(
         max_price=max_price,
         max_listings_per_site=max_listings,
         apartments_only=apartments_only,
+        min_surface=min_surface,
+        min_rooms=min_rooms,
     )
 
 
