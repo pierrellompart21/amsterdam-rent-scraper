@@ -58,8 +58,9 @@ RENTAL_SITES: list[RentalSite] = [
             "%22diemen%22,%22ouderkerk-aan-de-amstel%22,%22badhoevedorp%22%5D"
         ),
         scraper_class="amsterdam_rent_scraper.scrapers.funda.FundaScraper",
+        enabled=False,  # Disabled: aggressive anti-bot blocks headless browsers
         needs_js=True,
-        notes="Largest Dutch housing site. Aggressive anti-bot. Use Playwright.",
+        notes="Largest Dutch housing site. Aggressive anti-bot blocks headless browsers.",
     ),
     RentalSite(
         name="pararius",
@@ -75,7 +76,7 @@ RENTAL_SITES: list[RentalSite] = [
         name="kamernet",
         base_url="https://kamernet.nl",
         search_url_template=(
-            "https://kamernet.nl/en/for-rent/apartments-amsterdam"
+            "https://kamernet.nl/huren/huurwoningen-amsterdam"
             "?minRent={min_price}&maxRent={max_price}"
         ),
         scraper_class="amsterdam_rent_scraper.scrapers.kamernet.KamernetScraper",
@@ -95,8 +96,9 @@ RENTAL_SITES: list[RentalSite] = [
         base_url="https://rentslam.com",
         search_url_template="https://rentslam.com/en/apartments/amsterdam",
         scraper_class="amsterdam_rent_scraper.scrapers.rentslam.RentslamScraper",
+        enabled=False,  # Disabled: not loading individual listings properly
         needs_js=True,
-        notes="Aggregator. Might overlap with other sites.",
+        notes="Aggregator. Not loading listings properly in headless mode.",
     ),
     RentalSite(
         name="housinganywhere",
@@ -106,7 +108,9 @@ RENTAL_SITES: list[RentalSite] = [
             "apartment?priceMin={min_price}&priceMax={max_price}"
         ),
         scraper_class="amsterdam_rent_scraper.scrapers.housinganywhere.HousingAnywhereScraper",
+        enabled=False,  # Disabled: blocking headless browsers
         needs_js=True,
+        notes="Blocks headless browsers - doesn't load listings.",
     ),
     RentalSite(
         name="directwonen",
@@ -129,7 +133,9 @@ RENTAL_SITES: list[RentalSite] = [
         base_url="https://roofz.nl",
         search_url_template="https://roofz.nl/en/rent/amsterdam",
         scraper_class="amsterdam_rent_scraper.scrapers.roofz.RoofzScraper",
+        enabled=False,  # Disabled: site timing out / not responding
         needs_js=True,
+        notes="Site often times out or not responding.",
     ),
     RentalSite(
         name="123wonen",
