@@ -116,7 +116,8 @@ RENTAL_SITES: list[RentalSite] = [
             "?minprice={min_price}&maxprice={max_price}"
         ),
         scraper_class="amsterdam_rent_scraper.scrapers.directwonen.DirectWonenScraper",
-        needs_js=False,
+        needs_js=True,
+        notes="Listings load dynamically via JavaScript.",
     ),
     RentalSite(
         name="huurstunt",
@@ -126,7 +127,8 @@ RENTAL_SITES: list[RentalSite] = [
             "?min={min_price}&max={max_price}"
         ),
         scraper_class="amsterdam_rent_scraper.scrapers.huurstunt.HuurstuntScraper",
-        needs_js=False,
+        needs_js=True,
+        notes="Listings load dynamically via JavaScript.",
     ),
     RentalSite(
         name="roofz",
