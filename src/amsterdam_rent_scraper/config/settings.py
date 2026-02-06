@@ -22,7 +22,7 @@ TIMEOUT = 30
 
 # === LLM CONFIG ===
 OLLAMA_BASE_URL = "http://localhost:11434"
-OLLAMA_MODEL = "llama3"  # or "mistral" — pick what you have loaded
+OLLAMA_MODEL = "llama3.2"  # or "llama3.1:8b", "mistral" — pick what you have loaded
 LLM_TIMEOUT = 120
 LLM_MAX_INPUT_CHARS = 12000  # truncate page content to fit context
 
