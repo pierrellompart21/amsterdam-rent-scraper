@@ -25,9 +25,13 @@ class ParariusScraper(BaseScraper):
         """Scrape search results to get all listing URLs."""
         urls = []
         page = 1
-        max_pages = 2 if self.test_mode else 50
+        # In test mode, limit pages. Otherwise paginate until no results or we have enough
+        max_pages = 2 if self.test_mode else 500  # Safety limit
 
         while page <= max_pages:
+            # Early exit if we have enough listings
+            if self.max_listings is not None and len(urls) >= self.max_listings:
+                break
             search_url = self.get_search_url(page)
             console.print(f"  Fetching search page {page}: {search_url}")
 

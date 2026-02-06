@@ -8,6 +8,14 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright, Page, Browser
 from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 
 from amsterdam_rent_scraper.config.settings import (
     RAW_PAGES_DIR,
@@ -16,6 +24,20 @@ from amsterdam_rent_scraper.config.settings import (
 )
 
 console = Console()
+
+
+def create_scraping_progress() -> Progress:
+    """Create a rich progress bar for scraping."""
+    return Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(bar_width=30),
+        MofNCompleteColumn(),
+        TextColumn("•"),
+        TimeElapsedColumn(),
+        console=console,
+        transient=False,
+    )
 
 
 class PlaywrightBaseScraper(abc.ABC):
@@ -33,11 +55,13 @@ class PlaywrightBaseScraper(abc.ABC):
         self.min_price = min_price
         self.max_price = max_price
         self.test_mode = test_mode
-        # Priority: explicit max_listings > test_mode default > full mode default
+        # Priority: explicit max_listings > test_mode default > unlimited
         if max_listings is not None:
             self.max_listings = max_listings
+        elif test_mode:
+            self.max_listings = 3
         else:
-            self.max_listings = 3 if test_mode else 10000
+            self.max_listings = None  # None = no limit (paginate until exhausted)
         RAW_PAGES_DIR.mkdir(parents=True, exist_ok=True)
         self._browser: Browser | None = None
         self._playwright = None
@@ -138,30 +162,43 @@ class PlaywrightBaseScraper(abc.ABC):
             urls = self.get_listing_urls(page)
             page.close()
 
-            # Always apply max_listings limit (test_mode just sets it to 3)
-            urls = urls[: self.max_listings]
-            console.print(f"  Found {len(urls)} listing URLs (limit: {self.max_listings})")
+            # Apply max_listings limit if set
+            if self.max_listings is not None:
+                urls = urls[: self.max_listings]
+                console.print(f"  Found {len(urls)} listing URLs (limit: {self.max_listings})")
+            else:
+                console.print(f"  Found {len(urls)} listing URLs (no limit)")
+
+            if not urls:
+                console.print(f"[yellow]{self.site_name}: no listings found[/]")
+                return []
 
             results = []
+            failed = 0
             page = self._new_page()
 
-            for i, url in enumerate(urls):
-                try:
-                    console.print(f"  [{i+1}/{len(urls)}] {url[:80]}...")
-                    html = self.fetch_page(url, page)
-                    raw_path = self.save_raw_page(url, html)
-                    data = self.parse_listing_page(html, url)
-                    data["listing_url"] = url
-                    data["raw_page_path"] = raw_path
-                    data["source_site"] = self.site_name
-                    results.append(data)
-                    self._delay()
-                except Exception as e:
-                    console.print(f"  [red]Failed: {e}[/]")
-                    continue
+            with create_scraping_progress() as progress:
+                task = progress.add_task(f"{self.site_name}", total=len(urls))
+
+                for url in urls:
+                    try:
+                        html = self.fetch_page(url, page)
+                        raw_path = self.save_raw_page(url, html)
+                        data = self.parse_listing_page(html, url)
+                        data["listing_url"] = url
+                        data["raw_page_path"] = raw_path
+                        data["source_site"] = self.site_name
+                        results.append(data)
+                        self._delay()
+                    except Exception as e:
+                        failed += 1
+                        console.print(f"  [red]Failed ({url[:50]}...): {e}[/]")
+                    finally:
+                        progress.advance(task)
 
             page.close()
-            console.print(f"[green]{self.site_name}: scraped {len(results)} listings[/]")
+            status = "[green]" if failed == 0 else "[yellow]"
+            console.print(f"{status}{self.site_name}: scraped {len(results)} listings" + (f" ({failed} failed)" if failed else "") + "[/]")
             return results
         finally:
             self._close_browser()

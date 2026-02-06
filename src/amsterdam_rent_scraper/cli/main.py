@@ -36,6 +36,12 @@ def scrape(
     apartments_only: bool = typer.Option(
         False, "--apartments-only", "-a", help="Filter out rooms/shared housing"
     ),
+    min_surface: int = typer.Option(
+        None, "--min-surface", help="Minimum surface area in m²"
+    ),
+    min_rooms: int = typer.Option(
+        None, "--min-rooms", help="Minimum number of rooms"
+    ),
     ollama_model: str = typer.Option(
         "llama3", "--model", "-m", help="Ollama model name"
     ),
@@ -68,6 +74,10 @@ def scrape(
 
     if apartments_only:
         console.print("   Filter: apartments only (no rooms/shared)")
+    if min_surface:
+        console.print(f"   Min surface: {min_surface} m²")
+    if min_rooms:
+        console.print(f"   Min rooms: {min_rooms}")
 
     run_pipeline(
         test_mode=test_run,
@@ -78,6 +88,8 @@ def scrape(
         max_price=max_price,
         max_listings_per_site=max_listings,
         apartments_only=apartments_only,
+        min_surface=min_surface,
+        min_rooms=min_rooms,
     )
 
 

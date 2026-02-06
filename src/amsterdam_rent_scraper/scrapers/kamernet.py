@@ -35,9 +35,12 @@ class KamernetScraper(PlaywrightBaseScraper):
         """Scrape search results to get all listing URLs."""
         urls = []
         page_num = 1
-        max_pages = 2 if self.test_mode else 10
+        max_pages = 2 if self.test_mode else 100  # Safety limit
 
         while page_num <= max_pages:
+            # Early exit if we have enough listings
+            if self.max_listings is not None and len(urls) >= self.max_listings:
+                break
             search_url = self.get_search_url(page_num)
             console.print(f"  Fetching search page {page_num}: {search_url[:80]}...")
 

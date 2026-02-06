@@ -6,7 +6,14 @@ from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
-from tqdm import tqdm
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 
 from amsterdam_rent_scraper.config.settings import (
     MIN_PRICE,
@@ -22,6 +29,20 @@ from amsterdam_rent_scraper.models.listing import RentalListing
 from amsterdam_rent_scraper.utils.geo import enrich_listing_with_geo
 
 console = Console()
+
+
+def create_progress(description: str = "") -> Progress:
+    """Create a rich progress bar."""
+    return Progress(
+        SpinnerColumn(),
+        TextColumn("[cyan]{task.description}"),
+        BarColumn(bar_width=30),
+        MofNCompleteColumn(),
+        TextColumn("•"),
+        TimeElapsedColumn(),
+        console=console,
+        transient=False,
+    )
 
 
 def load_scraper_class(dotted_path: str):
@@ -40,6 +61,8 @@ def run_pipeline(
     max_price: int = None,
     max_listings_per_site: Optional[int] = None,
     apartments_only: bool = False,
+    min_surface: Optional[int] = None,
+    min_rooms: Optional[int] = None,
 ) -> list[dict]:
     """
     Run the full scraping pipeline.
@@ -103,17 +126,38 @@ def run_pipeline(
         extractor = OllamaExtractor()
 
         if extractor.is_available():
-            for listing in tqdm(all_listings, desc="LLM extraction"):
-                raw_path = listing.get("raw_page_path")
-                if raw_path:
-                    listing.update(extractor.enrich_listing(listing, raw_path))
+            with create_progress() as progress:
+                task = progress.add_task("LLM extraction", total=len(all_listings))
+                for listing in all_listings:
+                    raw_path = listing.get("raw_page_path")
+                    if raw_path:
+                        listing.update(extractor.enrich_listing(listing, raw_path))
+                    progress.advance(task)
         else:
             console.print(
                 "[yellow]Skipping LLM extraction (Ollama not available)[/]"
             )
             # Use regex fallback instead
             console.print("[cyan]Using regex fallback extraction...[/]")
-            for listing in tqdm(all_listings, desc="Regex extraction"):
+            with create_progress() as progress:
+                task = progress.add_task("Regex extraction", total=len(all_listings))
+                for listing in all_listings:
+                    raw_path = listing.get("raw_page_path")
+                    if raw_path:
+                        try:
+                            with open(raw_path, "r", encoding="utf-8") as f:
+                                html = f.read()
+                            listing.update(regex_extract_from_html(html, listing))
+                        except Exception:
+                            pass
+                    progress.advance(task)
+    else:
+        console.print("[dim]Skipping LLM extraction (--skip-llm)[/]")
+        # Still apply regex fallback for basic field extraction
+        console.print("[cyan]Using regex fallback extraction...[/]")
+        with create_progress() as progress:
+            task = progress.add_task("Regex extraction", total=len(all_listings))
+            for listing in all_listings:
                 raw_path = listing.get("raw_page_path")
                 if raw_path:
                     try:
@@ -122,19 +166,7 @@ def run_pipeline(
                         listing.update(regex_extract_from_html(html, listing))
                     except Exception:
                         pass
-    else:
-        console.print("[dim]Skipping LLM extraction (--skip-llm)[/]")
-        # Still apply regex fallback for basic field extraction
-        console.print("[cyan]Using regex fallback extraction...[/]")
-        for listing in tqdm(all_listings, desc="Regex extraction"):
-            raw_path = listing.get("raw_page_path")
-            if raw_path:
-                try:
-                    with open(raw_path, "r", encoding="utf-8") as f:
-                        html = f.read()
-                    listing.update(regex_extract_from_html(html, listing))
-                except Exception:
-                    pass
+                progress.advance(task)
 
     # Post-extraction price filtering
     # Many sites don't respect URL price filters, so we filter after extraction
@@ -173,10 +205,37 @@ def run_pipeline(
         if rooms_filtered > 0:
             console.print(f"[yellow]Filtered {rooms_filtered} room/shared listings (apartments only mode)[/]")
 
+    # Filter by minimum surface area
+    if min_surface:
+        pre_filter_count = len(all_listings)
+        all_listings = [
+            listing for listing in all_listings
+            if listing.get("surface_m2") is None  # Keep if no surface data
+            or listing.get("surface_m2", 0) >= min_surface
+        ]
+        surface_filtered = pre_filter_count - len(all_listings)
+        if surface_filtered > 0:
+            console.print(f"[yellow]Filtered {surface_filtered} listings below {min_surface} m²[/]")
+
+    # Filter by minimum rooms
+    if min_rooms:
+        pre_filter_count = len(all_listings)
+        all_listings = [
+            listing for listing in all_listings
+            if listing.get("rooms") is None  # Keep if no room data
+            or listing.get("rooms", 0) >= min_rooms
+        ]
+        rooms_filtered = pre_filter_count - len(all_listings)
+        if rooms_filtered > 0:
+            console.print(f"[yellow]Filtered {rooms_filtered} listings with fewer than {min_rooms} rooms[/]")
+
     # Geographic enrichment
     console.print("\n[bold cyan]Adding geographic data...[/]")
-    for listing in tqdm(all_listings, desc="Geocoding"):
-        enrich_listing_with_geo(listing)
+    with create_progress() as progress:
+        task = progress.add_task("Geocoding", total=len(all_listings))
+        for listing in all_listings:
+            enrich_listing_with_geo(listing)
+            progress.advance(task)
 
     # Add scraped timestamp
     now = datetime.now()

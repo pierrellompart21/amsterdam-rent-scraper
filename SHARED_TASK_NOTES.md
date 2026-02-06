@@ -16,10 +16,9 @@
   - `directwonen` - requires login/subscription to see prices and details
 
 ## Recent Changes (this iteration)
-- Added post-extraction price filtering (filters listings outside EUR range after extraction)
-- Added `--apartments-only` CLI flag to filter out rooms/shared housing
-- Fixed Kamernet title/address extraction (derives from URL when not in HTML)
-- Disabled DirectWonen (requires paywall/login to see actual rental prices)
+- Added `--min-surface` and `--min-rooms` CLI filters (post-extraction filtering)
+- Replaced tqdm with rich progress bars for consistent polished UI
+- Implemented full pagination: when no --max-listings set, scrapes ALL pages until exhausted
 
 ## CLI Options
 ```bash
@@ -27,33 +26,36 @@
 pip install -e .
 playwright install chromium
 
-# Quick test (3 listings per site)
+# Quick test (3 listings per site, limited pages)
 rent-scraper --test-run --sites pararius --skip-llm
 
-# Apartments only (filter out rooms/shared)
-rent-scraper --max-listings 20 --sites kamernet --apartments-only --skip-llm
+# With surface/rooms filters
+rent-scraper --max-listings 10 --sites pararius --skip-llm --min-surface 60 --min-rooms 2
 
-# Full run all working scrapers
+# Full run - scrapes ALL available listings (paginates until no more results)
+rent-scraper --sites pararius,huurwoningen --skip-llm
+
+# Limited full run
 rent-scraper --max-listings 50 --sites pararius,huurwoningen,123wonen,huurstunt,kamernet --skip-llm
-
-# With LLM extraction (requires: ollama pull llama3.2 && ollama serve)
-rent-scraper --max-listings 10 --sites pararius,huurwoningen
 ```
 
 ## Next Priority Tasks
-1. **Test LLM extraction**: Run with `--sites pararius` (no --skip-llm) to validate Ollama integration
-2. **Improve data quality**: Some sites don't respect URL price filters, now post-filtered in pipeline
-3. **HTML report filters**: Add interactive price/rooms/distance filters to the HTML report
-4. **Test with more listings**: Run `rent-scraper --max-listings 50 --sites pararius,huurwoningen,123wonen,huurstunt,kamernet --skip-llm` and verify data quality
+1. **Commute calculation**: Add real commute times to target (Stroombaan 4, Amstelveen) via OpenRouteService/OSRM
+2. **Neighborhood quality**: Add quality-of-life scores per Amsterdam district
+3. **HTML report improvements**: Interactive filters, colored markers by price, commute route overlay
+4. **More rental sites**: Search for vbo.nl, jaap.nl, vesteda.com, holland2stay.com
+5. **SQLite database**: Store listings with deduplication by URL
+6. **README.md**: Setup instructions, usage examples, architecture overview
 
 ## Key Files
-- `src/amsterdam_rent_scraper/cli/main.py` - CLI with --apartments-only option
-- `src/amsterdam_rent_scraper/pipeline.py` - Price filtering + apartments-only filtering
-- `src/amsterdam_rent_scraper/scrapers/kamernet.py` - URL-based title/address extraction
-- `src/amsterdam_rent_scraper/config/settings.py` - Site configs (directwonen disabled)
+- `src/amsterdam_rent_scraper/cli/main.py` - CLI with --apartments-only, --min-surface, --min-rooms
+- `src/amsterdam_rent_scraper/pipeline.py` - Post-extraction filtering, rich progress bars
+- `src/amsterdam_rent_scraper/scrapers/base.py` - Base scraper with rich progress, max_listings=None means unlimited
+- `src/amsterdam_rent_scraper/scrapers/playwright_base.py` - Playwright base with same behavior
 
 ## Technical Notes
-- Post-extraction price filtering catches listings where sites don't respect URL params
-- `--apartments-only` filters by property_type, URL patterns, and title keywords
-- Kamernet extracts title/address from URL pattern: `/huren/TYPE-amsterdam/STREET/TYPE-ID`
-- DirectWonen disabled because all prices on page are subscription fees (€10.95, etc.)
+- Post-extraction filtering: price, apartments-only, min-surface, min-rooms
+- Field names: `surface_m2` (not surface_sqm), `rooms`, `price_eur`
+- max_listings=None (default in full mode) = paginate until no more results
+- Target: Stroombaan 4, 1181 VX Amstelveen (52.3027, 4.8557)
+- Price range: EUR 1000-2000, Min surface: 60m², Min rooms: 2
