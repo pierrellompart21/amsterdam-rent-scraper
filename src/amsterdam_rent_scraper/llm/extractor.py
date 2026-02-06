@@ -13,6 +13,7 @@ from amsterdam_rent_scraper.config.settings import (
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
 )
+from amsterdam_rent_scraper.llm.regex_fallback import regex_extract_from_html
 
 console = Console()
 
@@ -141,10 +142,12 @@ class OllamaExtractor:
             return False
 
     def extract_from_html(self, html: str, raw_data: dict = None) -> dict:
-        """Extract structured fields from HTML content using LLM."""
+        """Extract structured fields from HTML content using LLM with regex fallback."""
         text = extract_text_from_html(html)
 
         prompt = EXTRACTION_PROMPT.format(content=text)
+
+        result = raw_data.copy() if raw_data else {}
 
         try:
             response = self.client.generate(
@@ -156,20 +159,20 @@ class OllamaExtractor:
             llm_data = extract_json_from_response(response.response)
 
             if llm_data:
-                # Merge with raw_data, preferring raw_data for existing fields
-                if raw_data:
-                    for key, value in llm_data.items():
-                        if key not in raw_data or raw_data.get(key) is None:
-                            raw_data[key] = value
-                    return raw_data
-                return llm_data
+                # Merge LLM data, preferring existing raw_data fields
+                for key, value in llm_data.items():
+                    if key not in result or result.get(key) is None:
+                        result[key] = value
             else:
                 console.print("[yellow]Could not parse LLM response as JSON[/]")
-                return raw_data or {}
 
         except Exception as e:
             console.print(f"[red]LLM extraction failed: {e}[/]")
-            return raw_data or {}
+
+        # Apply regex fallback to fill in any remaining missing fields
+        result = regex_extract_from_html(html, result)
+
+        return result
 
     def enrich_listing(self, listing_data: dict, raw_html_path: str = None) -> dict:
         """Enrich a listing with LLM-extracted data."""
