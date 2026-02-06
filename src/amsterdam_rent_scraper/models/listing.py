@@ -72,6 +72,27 @@ class RentalListing(BaseModel):
     bike_route_coords: Optional[list] = Field(
         None, description="Bike route coordinates [[lon,lat], ...] for map display"
     )
-    neighborhood_score: Optional[str] = Field(
-        None, description="LLM assessment of neighborhood quality"
+
+    # === Neighborhood scores (computed) ===
+    neighborhood_name: Optional[str] = Field(
+        None, description="Identified neighborhood/district name"
+    )
+    neighborhood_safety: Optional[int] = Field(None, description="Safety score 1-10")
+    neighborhood_green_space: Optional[int] = Field(
+        None, description="Green space score 1-10"
+    )
+    neighborhood_amenities: Optional[int] = Field(
+        None, description="Amenities score 1-10"
+    )
+    neighborhood_restaurants: Optional[int] = Field(
+        None, description="Restaurants score 1-10"
+    )
+    neighborhood_family_friendly: Optional[int] = Field(
+        None, description="Family friendliness score 1-10"
+    )
+    neighborhood_expat_friendly: Optional[int] = Field(
+        None, description="Expat friendliness score 1-10"
+    )
+    neighborhood_overall: Optional[float] = Field(
+        None, description="Weighted overall neighborhood score"
     )

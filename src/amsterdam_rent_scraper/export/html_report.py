@@ -82,6 +82,18 @@ HTML_TEMPLATE = """
         .tag-furnished { background: #d5f5e3; color: #27ae60; }
         .tag-unfurnished { background: #fdebd0; color: #e67e22; }
 
+        .neighborhood-score { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .score-high { background: #d5f5e3; color: #27ae60; }
+        .score-mid { background: #fef9e7; color: #d68910; }
+        .score-low { background: #fadbd8; color: #c0392b; }
+        .neighborhood-name { font-size: 0.75rem; color: #666; display: block; margin-top: 2px; }
+        .neighborhood-tooltip { position: relative; cursor: help; }
+        .neighborhood-tooltip .tooltip-content { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 10px; border-radius: 6px; font-size: 0.75rem; white-space: nowrap; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .neighborhood-tooltip:hover .tooltip-content { display: block; }
+        .tooltip-row { display: flex; justify-content: space-between; gap: 15px; margin: 3px 0; }
+        .tooltip-label { opacity: 0.8; }
+        .tooltip-value { font-weight: bold; }
+
         .no-results { text-align: center; padding: 40px; color: #666; }
 
         @media (max-width: 768px) {
@@ -137,6 +149,10 @@ HTML_TEMPLATE = """
                         {% endfor %}
                     </select>
                 </div>
+                <div class="filter-group">
+                    <label>Min Neighborhood Score</label>
+                    <input type="number" id="minNeighborhoodScore" placeholder="7" step="0.1" min="1" max="10">
+                </div>
                 <button onclick="applyFilters()">Apply Filters</button>
                 <button class="btn-reset" onclick="resetFilters()">Reset</button>
             </div>
@@ -188,6 +204,7 @@ HTML_TEMPLATE = """
                     <th data-sort="distance_km">Distance</th>
                     <th data-sort="commute_time_bike_min">Bike</th>
                     <th data-sort="commute_time_driving_min">Car</th>
+                    <th data-sort="neighborhood_overall">Area</th>
                     <th>Summary</th>
                     <th>Link</th>
                 </tr>
@@ -303,11 +320,15 @@ HTML_TEMPLATE = """
                     const commuteInfo = [bikeInfo, carInfo].filter(x => x).join(' | ');
                     const hasRoute = listing.bike_route_coords && listing.bike_route_coords.length > 0;
 
+                    const neighborhoodInfo = listing.neighborhood_name ?
+                        `<span style="color:#666;">📍 ${listing.neighborhood_name} (${listing.neighborhood_overall}/10)</span><br>` : '';
+
                     const popupContent = `
                         <div style="min-width:200px;">
                             <b>${listing.title || listing.address || 'Listing'}</b><br>
                             <b style="color:${getPriceColor(listing.price_eur)}">EUR ${listing.price_eur || '?'}/month</b><br>
                             ${listing.surface_m2 ? listing.surface_m2 + ' m²' : ''} | ${listing.rooms || '?'} rooms<br>
+                            ${neighborhoodInfo}
                             ${commuteInfo ? `<span style="color:#666;">${commuteInfo}</span><br>` : ''}
                             ${hasRoute ? `<button onclick="showRoute(listings.find(l => l.listing_url === '${listing.listing_url}'))" style="margin-top:5px;padding:3px 8px;background:#3498db;color:white;border:none;border-radius:3px;cursor:pointer;">Show bike route</button><br>` : ''}
                             <a href="${listing.listing_url}" target="_blank" style="color:#3498db;">View listing →</a>
@@ -339,6 +360,27 @@ HTML_TEMPLATE = """
             data.forEach(listing => {
                 const row = document.createElement('tr');
                 const priceClass = listing.price_eur ? (listing.price_eur < 1300 ? 'price-low' : listing.price_eur < 1700 ? 'price-mid' : 'price-high') : '';
+
+                // Neighborhood score display
+                let neighborhoodHtml = '-';
+                if (listing.neighborhood_overall) {
+                    const scoreClass = listing.neighborhood_overall >= 7.5 ? 'score-high' : listing.neighborhood_overall >= 6 ? 'score-mid' : 'score-low';
+                    neighborhoodHtml = `
+                        <div class="neighborhood-tooltip">
+                            <span class="neighborhood-score ${scoreClass}">${listing.neighborhood_overall}</span>
+                            <span class="neighborhood-name">${listing.neighborhood_name || ''}</span>
+                            <div class="tooltip-content">
+                                <div class="tooltip-row"><span class="tooltip-label">Safety:</span><span class="tooltip-value">${listing.neighborhood_safety || '-'}/10</span></div>
+                                <div class="tooltip-row"><span class="tooltip-label">Green space:</span><span class="tooltip-value">${listing.neighborhood_green_space || '-'}/10</span></div>
+                                <div class="tooltip-row"><span class="tooltip-label">Amenities:</span><span class="tooltip-value">${listing.neighborhood_amenities || '-'}/10</span></div>
+                                <div class="tooltip-row"><span class="tooltip-label">Restaurants:</span><span class="tooltip-value">${listing.neighborhood_restaurants || '-'}/10</span></div>
+                                <div class="tooltip-row"><span class="tooltip-label">Family:</span><span class="tooltip-value">${listing.neighborhood_family_friendly || '-'}/10</span></div>
+                                <div class="tooltip-row"><span class="tooltip-label">Expat:</span><span class="tooltip-value">${listing.neighborhood_expat_friendly || '-'}/10</span></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 row.innerHTML = `
                     <td>${listing.source_site || '-'}</td>
                     <td class="price ${priceClass}">EUR ${listing.price_eur || '?'}</td>
@@ -350,6 +392,7 @@ HTML_TEMPLATE = """
                     <td>${listing.distance_km ? listing.distance_km.toFixed(1) + ' km' : '-'}</td>
                     <td>${listing.commute_time_bike_min ? listing.commute_time_bike_min + ' min' : '-'}</td>
                     <td>${listing.commute_time_driving_min ? listing.commute_time_driving_min + ' min' : '-'}</td>
+                    <td>${neighborhoodHtml}</td>
                     <td class="summary">${listing.description_summary || '-'}</td>
                     <td><a href="${listing.listing_url}" target="_blank" class="url-link">View</a></td>
                 `;
@@ -377,6 +420,7 @@ HTML_TEMPLATE = """
             const maxBikeTime = parseInt(document.getElementById('maxBikeTime').value) || 99999;
             const furnished = document.getElementById('furnished').value;
             const source = document.getElementById('source').value;
+            const minNeighborhoodScore = parseFloat(document.getElementById('minNeighborhoodScore').value) || 0;
 
             return listings.filter(l => {
                 if (l.price_eur && (l.price_eur < minPrice || l.price_eur > maxPrice)) return false;
@@ -385,6 +429,7 @@ HTML_TEMPLATE = """
                 if (l.commute_time_bike_min && l.commute_time_bike_min > maxBikeTime) return false;
                 if (furnished && l.furnished !== furnished) return false;
                 if (source && l.source_site !== source) return false;
+                if (minNeighborhoodScore > 0 && (!l.neighborhood_overall || l.neighborhood_overall < minNeighborhoodScore)) return false;
                 return true;
             });
         }
@@ -424,6 +469,7 @@ HTML_TEMPLATE = """
             document.getElementById('maxBikeTime').value = '';
             document.getElementById('furnished').value = '';
             document.getElementById('source').value = '';
+            document.getElementById('minNeighborhoodScore').value = '';
             applyFilters();
         }
 
