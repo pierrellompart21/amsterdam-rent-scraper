@@ -33,6 +33,9 @@ def scrape(
     skip_llm: bool = typer.Option(
         False, "--skip-llm", help="Skip LLM extraction (scrape only)"
     ),
+    apartments_only: bool = typer.Option(
+        False, "--apartments-only", "-a", help="Filter out rooms/shared housing"
+    ),
     ollama_model: str = typer.Option(
         "llama3", "--model", "-m", help="Ollama model name"
     ),
@@ -63,6 +66,9 @@ def scrape(
     if max_listings:
         console.print(f"   Max listings per site: {max_listings}")
 
+    if apartments_only:
+        console.print("   Filter: apartments only (no rooms/shared)")
+
     run_pipeline(
         test_mode=test_run,
         site_filter=site_filter,
@@ -71,6 +77,7 @@ def scrape(
         min_price=min_price,
         max_price=max_price,
         max_listings_per_site=max_listings,
+        apartments_only=apartments_only,
     )
 
 

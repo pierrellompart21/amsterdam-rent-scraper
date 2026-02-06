@@ -39,6 +39,7 @@ def run_pipeline(
     min_price: int = None,
     max_price: int = None,
     max_listings_per_site: Optional[int] = None,
+    apartments_only: bool = False,
 ) -> list[dict]:
     """
     Run the full scraping pipeline.
@@ -134,6 +135,43 @@ def run_pipeline(
                     listing.update(regex_extract_from_html(html, listing))
                 except Exception:
                     pass
+
+    # Post-extraction price filtering
+    # Many sites don't respect URL price filters, so we filter after extraction
+    pre_filter_count = len(all_listings)
+    all_listings = [
+        listing for listing in all_listings
+        if listing.get("price_eur") is None  # Keep listings without price (for review)
+        or (min_price <= listing.get("price_eur", 0) <= max_price)
+    ]
+    price_filtered = pre_filter_count - len(all_listings)
+    if price_filtered > 0:
+        console.print(f"[yellow]Filtered {price_filtered} listings outside price range EUR {min_price}-{max_price}[/]")
+
+    # Filter out rooms/shared housing if requested
+    if apartments_only:
+        room_types = {"room", "kamer", "shared"}
+        pre_filter_count = len(all_listings)
+        filtered_listings = []
+        for listing in all_listings:
+            property_type = (listing.get("property_type") or "").lower()
+            title = (listing.get("title") or "").lower()
+            url = (listing.get("url") or "").lower()
+
+            # Check if it's a room listing
+            is_room = (
+                property_type in room_types
+                or "/kamer-" in url
+                or "kamer " in title
+                or "shared" in title
+            )
+            if not is_room:
+                filtered_listings.append(listing)
+
+        all_listings = filtered_listings
+        rooms_filtered = pre_filter_count - len(all_listings)
+        if rooms_filtered > 0:
+            console.print(f"[yellow]Filtered {rooms_filtered} room/shared listings (apartments only mode)[/]")
 
     # Geographic enrichment
     console.print("\n[bold cyan]Adding geographic data...[/]")

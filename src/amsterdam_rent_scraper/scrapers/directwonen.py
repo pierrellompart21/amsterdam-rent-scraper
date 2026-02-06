@@ -79,30 +79,49 @@ class DirectWonenScraper(PlaywrightBaseScraper):
         return urls[: self.max_listings]
 
     def parse_listing_page(self, html: str, url: str) -> dict:
-        """Parse a DirectWonen listing page and extract data."""
+        """Parse a DirectWonen listing page and extract data.
+
+        Note: DirectWonen hides most details (price, m², rooms) behind a paywall.
+        We extract what we can from the URL and visible elements.
+        """
         soup = BeautifulSoup(html, "lxml")
         data = {}
 
-        # Title - try multiple selectors
-        for selector in ["h1", ".property-title", ".listing-title"]:
-            title_el = soup.select_one(selector)
-            if title_el:
-                data["title"] = title_el.get_text(strip=True)
-                break
+        # Property type from URL (e.g., /appartement-509529)
+        type_match = re.search(r"/(appartement|studio|kamer|woning)-\d+", url)
+        if type_match:
+            type_mapping = {
+                "appartement": "Apartment",
+                "studio": "Studio",
+                "kamer": "Room",
+                "woning": "House",
+            }
+            data["property_type"] = type_mapping.get(type_match.group(1), type_match.group(1).title())
 
-        # Price - look for price patterns
-        price_patterns = [".price", ".listing-price", ".property-price", '[class*="price"]']
-        for pattern in price_patterns:
-            price_el = soup.select_one(pattern)
-            if price_el:
-                price_text = price_el.get_text(strip=True)
-                price_match = re.search(r"€?\s*([\d.,]+)", price_text.replace(".", "").replace(",", ""))
-                if price_match:
-                    try:
-                        data["price_eur"] = float(price_match.group(1))
+        # Title from URL - extract street name
+        # URL pattern: /huurwoningen-huren/amsterdam/STREET/TYPE-ID
+        url_match = re.search(r"/huurwoningen-huren/amsterdam/([^/]+)/(\w+)-\d+", url)
+        if url_match:
+            street = url_match.group(1).replace("-", " ").title()
+            prop_type = url_match.group(2).replace("-", " ").title()
+            data["title"] = f"{prop_type} - {street}, Amsterdam"
+            data["address"] = f"{street}, Amsterdam"
+
+        # Title - try multiple selectors (but these are often generic on DirectWonen)
+        if "title" not in data:
+            for selector in ["h1", ".property-title", ".listing-title"]:
+                title_el = soup.select_one(selector)
+                if title_el:
+                    title_text = title_el.get_text(strip=True)
+                    # Skip generic titles like "Smart Only" or subscription-related
+                    if title_text and "smart" not in title_text.lower() and len(title_text) > 5:
+                        data["title"] = title_text
                         break
-                    except ValueError:
-                        continue
+
+        # Price - DirectWonen requires login to see actual rental prices
+        # The visible prices are subscription prices (€10.95, €19.95, €34.95)
+        # We don't extract price here to avoid misinterpreting subscription prices as rent
+        # Price will remain None and get filtered out by the pipeline's price filter
 
         # Address
         address_patterns = [".address", ".location", ".property-address", '[class*="address"]']

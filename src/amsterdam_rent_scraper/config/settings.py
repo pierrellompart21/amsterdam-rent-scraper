@@ -117,8 +117,9 @@ RENTAL_SITES: list[RentalSite] = [
         base_url="https://directwonen.nl",
         search_url_template="https://directwonen.nl/huurwoningen-huren/amsterdam",
         scraper_class="amsterdam_rent_scraper.scrapers.directwonen.DirectWonenScraper",
+        enabled=False,  # Disabled: requires login/subscription to see prices and details
         needs_js=True,
-        notes="Listings load dynamically. Price filtering done in scraper.",
+        notes="Requires login/subscription to see prices and listing details.",
     ),
     RentalSite(
         name="huurstunt",
