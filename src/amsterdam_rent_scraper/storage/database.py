@@ -21,10 +21,10 @@ class ListingDatabase:
         "minimum_contract_months", "pets_allowed", "smoking_allowed", "energy_label",
         "building_year", "landlord_name", "landlord_phone", "agency",
         "description_summary", "pros", "cons", "distance_km", "commute_time_bike_min",
-        "commute_time_transit_min", "commute_time_driving_min", "bike_route_coords",
-        "neighborhood_name", "neighborhood_safety", "neighborhood_green_space",
-        "neighborhood_amenities", "neighborhood_restaurants", "neighborhood_family_friendly",
-        "neighborhood_expat_friendly", "neighborhood_overall"
+        "commute_time_transit_min", "commute_time_driving_min", "transit_transfers",
+        "bike_route_coords", "neighborhood_name", "neighborhood_safety",
+        "neighborhood_green_space", "neighborhood_amenities", "neighborhood_restaurants",
+        "neighborhood_family_friendly", "neighborhood_expat_friendly", "neighborhood_overall"
     }
 
     def __init__(self, db_path: Path | str = "listings.db"):
@@ -94,6 +94,7 @@ class ListingDatabase:
                 commute_time_bike_min INTEGER,
                 commute_time_transit_min INTEGER,
                 commute_time_driving_min INTEGER,
+                transit_transfers INTEGER,
                 bike_route_coords TEXT,  -- JSON array
 
                 -- Neighborhood scores
@@ -122,6 +123,12 @@ class ListingDatabase:
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_price ON listings(price_eur)
         """)
+
+        # Migration: Add transit_transfers column if it doesn't exist
+        try:
+            cursor.execute("ALTER TABLE listings ADD COLUMN transit_transfers INTEGER")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
 
         self.conn.commit()
 

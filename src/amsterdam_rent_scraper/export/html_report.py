@@ -206,6 +206,10 @@ HTML_TEMPLATE = """
                     <input type="number" id="maxBikeTime" placeholder="30">
                 </div>
                 <div class="filter-group">
+                    <label>Max Transit Commute (min)</label>
+                    <input type="number" id="maxTransitTime" placeholder="45">
+                </div>
+                <div class="filter-group">
                     <label>Furnished</label>
                     <select id="furnished">
                         <option value="">Any</option>
@@ -280,6 +284,7 @@ HTML_TEMPLATE = """
                     <th data-sort="available_date">Available</th>
                     <th data-sort="distance_km">Distance</th>
                     <th data-sort="commute_time_bike_min">Bike</th>
+                    <th data-sort="commute_time_transit_min">Transit</th>
                     <th data-sort="commute_time_driving_min">Car</th>
                     <th data-sort="neighborhood_overall">Area</th>
                     <th>Summary</th>
@@ -418,8 +423,10 @@ HTML_TEMPLATE = """
             filteredListings.forEach(listing => {
                 if (listing.latitude && listing.longitude) {
                     const bikeInfo = listing.commute_time_bike_min ? `🚴 ${listing.commute_time_bike_min} min` : '';
+                    const transitTransfers = listing.transit_transfers !== null && listing.transit_transfers !== undefined ? ` (${listing.transit_transfers}x)` : '';
+                    const transitInfo = listing.commute_time_transit_min ? `🚇 ${listing.commute_time_transit_min} min${transitTransfers}` : '';
                     const carInfo = listing.commute_time_driving_min ? `🚗 ${listing.commute_time_driving_min} min` : '';
-                    const commuteInfo = [bikeInfo, carInfo].filter(x => x).join(' | ');
+                    const commuteInfo = [bikeInfo, transitInfo, carInfo].filter(x => x).join(' | ');
                     const hasRoute = listing.bike_route_coords && listing.bike_route_coords.length > 0;
                     const neighborhoodInfo = listing.neighborhood_name ? `<span style="color:#666;">📍 ${listing.neighborhood_name} (${listing.neighborhood_overall}/10)</span><br>` : '';
 
@@ -474,9 +481,13 @@ HTML_TEMPLATE = """
 
                 // Commute section
                 let commuteHtml = '';
-                if (listing.commute_time_bike_min || listing.commute_time_driving_min || listing.distance_km) {
+                if (listing.commute_time_bike_min || listing.commute_time_transit_min || listing.commute_time_driving_min || listing.distance_km) {
                     commuteHtml = '<div class="card-commute">';
                     if (listing.commute_time_bike_min) commuteHtml += `<div class="card-commute-item">🚴 <span>${listing.commute_time_bike_min} min</span></div>`;
+                    if (listing.commute_time_transit_min) {
+                        const transfers = listing.transit_transfers !== null && listing.transit_transfers !== undefined ? ` (${listing.transit_transfers}x)` : '';
+                        commuteHtml += `<div class="card-commute-item">🚇 <span>${listing.commute_time_transit_min} min${transfers}</span></div>`;
+                    }
                     if (listing.commute_time_driving_min) commuteHtml += `<div class="card-commute-item">🚗 <span>${listing.commute_time_driving_min} min</span></div>`;
                     if (listing.distance_km) commuteHtml += `<div class="card-commute-item">📍 <span>${listing.distance_km.toFixed(1)} km</span></div>`;
                     commuteHtml += '</div>';
@@ -575,6 +586,7 @@ HTML_TEMPLATE = """
                     <td>${listing.available_date || '-'}</td>
                     <td>${listing.distance_km ? listing.distance_km.toFixed(1) + ' km' : '-'}</td>
                     <td>${listing.commute_time_bike_min ? listing.commute_time_bike_min + ' min' : '-'}</td>
+                    <td>${listing.commute_time_transit_min ? listing.commute_time_transit_min + ' min' + (listing.transit_transfers !== null && listing.transit_transfers !== undefined ? ' (' + listing.transit_transfers + 'x)' : '') : '-'}</td>
                     <td>${listing.commute_time_driving_min ? listing.commute_time_driving_min + ' min' : '-'}</td>
                     <td>${neighborhoodHtml}</td>
                     <td class="summary">${listing.description_summary || '-'}</td>
@@ -600,6 +612,7 @@ HTML_TEMPLATE = """
             const minRooms = parseInt(document.getElementById('minRooms').value) || 0;
             const maxDistance = parseFloat(document.getElementById('maxDistance').value) || 99999;
             const maxBikeTime = parseInt(document.getElementById('maxBikeTime').value) || 99999;
+            const maxTransitTime = parseInt(document.getElementById('maxTransitTime').value) || 99999;
             const furnished = document.getElementById('furnished').value;
             const source = document.getElementById('source').value;
             const minNeighborhoodScore = parseFloat(document.getElementById('minNeighborhoodScore').value) || 0;
@@ -609,6 +622,7 @@ HTML_TEMPLATE = """
                 if (l.rooms && l.rooms < minRooms) return false;
                 if (l.distance_km && l.distance_km > maxDistance) return false;
                 if (l.commute_time_bike_min && l.commute_time_bike_min > maxBikeTime) return false;
+                if (l.commute_time_transit_min && l.commute_time_transit_min > maxTransitTime) return false;
                 if (furnished && l.furnished !== furnished) return false;
                 if (source && l.source_site !== source) return false;
                 if (minNeighborhoodScore > 0 && (!l.neighborhood_overall || l.neighborhood_overall < minNeighborhoodScore)) return false;
@@ -648,6 +662,7 @@ HTML_TEMPLATE = """
             document.getElementById('minRooms').value = '';
             document.getElementById('maxDistance').value = '';
             document.getElementById('maxBikeTime').value = '';
+            document.getElementById('maxTransitTime').value = '';
             document.getElementById('furnished').value = '';
             document.getElementById('source').value = '';
             document.getElementById('minNeighborhoodScore').value = '';
