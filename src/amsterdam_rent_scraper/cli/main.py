@@ -22,6 +22,9 @@ def scrape(
     sites: list[str] = typer.Option(
         None, "--sites", "-s", help="Filter specific sites (e.g. funda,pararius)"
     ),
+    max_listings: int = typer.Option(
+        None, "--max-listings", "-n", help="Max listings per site (overrides --test-run limit)"
+    ),
     min_price: int = typer.Option(1000, "--min-price", help="Minimum rent in EUR"),
     max_price: int = typer.Option(2000, "--max-price", help="Maximum rent in EUR"),
     output_dir: Path = typer.Option(
@@ -57,6 +60,8 @@ def scrape(
     console.print(f"   Output: {output_dir}")
     if site_filter:
         console.print(f"   Sites: {', '.join(site_filter)}")
+    if max_listings:
+        console.print(f"   Max listings per site: {max_listings}")
 
     run_pipeline(
         test_mode=test_run,
@@ -65,6 +70,7 @@ def scrape(
         output_dir=output_dir,
         min_price=min_price,
         max_price=max_price,
+        max_listings_per_site=max_listings,
     )
 
 

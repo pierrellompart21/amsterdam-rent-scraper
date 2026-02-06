@@ -38,6 +38,7 @@ def run_pipeline(
     output_dir: Path = None,
     min_price: int = None,
     max_price: int = None,
+    max_listings_per_site: Optional[int] = None,
 ) -> list[dict]:
     """
     Run the full scraping pipeline.
@@ -60,7 +61,10 @@ def run_pipeline(
         return []
 
     console.print(f"\n[bold]Starting scrape pipeline[/]")
-    console.print(f"  Mode: {'TEST (3 listings/site)' if test_mode else 'FULL'}")
+    if max_listings_per_site:
+        console.print(f"  Mode: CUSTOM ({max_listings_per_site} listings/site)")
+    else:
+        console.print(f"  Mode: {'TEST (3 listings/site)' if test_mode else 'FULL'}")
     console.print(f"  Sites: {', '.join(s.name for s in sites)}")
     console.print(f"  Price range: EUR {min_price} - {max_price}")
     console.print("")
@@ -74,7 +78,10 @@ def run_pipeline(
         try:
             scraper_class = load_scraper_class(site.scraper_class)
             scraper = scraper_class(
-                min_price=min_price, max_price=max_price, test_mode=test_mode
+                min_price=min_price,
+                max_price=max_price,
+                test_mode=test_mode,
+                max_listings=max_listings_per_site,
             )
             listings = scraper.scrape_all()
             all_listings.extend(listings)
