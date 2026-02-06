@@ -31,6 +31,7 @@ OUTPUT_DIR = Path("output")
 EXCEL_FILENAME = "amsterdam_rentals.xlsx"
 HTML_FILENAME = "amsterdam_rentals.html"
 RAW_PAGES_DIR = OUTPUT_DIR / "raw_pages"
+DATABASE_PATH = OUTPUT_DIR / "listings.db"
 
 
 @dataclass
