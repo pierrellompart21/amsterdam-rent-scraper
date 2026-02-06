@@ -168,6 +168,14 @@ RENTAL_SITES: list[RentalSite] = [
         needs_js=False,
         notes="Dutch rental agency with permissive robots.txt.",
     ),
+    RentalSite(
+        name="expathousingnetwork",
+        base_url="https://expathousingnetwork.nl",
+        search_url_template="https://expathousingnetwork.nl/listings-to-rent",
+        scraper_class="amsterdam_rent_scraper.scrapers.expathousingnetwork.ExpatHousingNetworkScraper",
+        needs_js=True,
+        notes="Expat-focused housing agency. Webflow site with permissive robots.txt.",
+    ),
 ]
 
 
