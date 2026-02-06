@@ -10,6 +10,7 @@ from geopy.exc import GeocoderTimedOut
 from rich.console import Console
 
 from amsterdam_rent_scraper.config.settings import WORK_LAT, WORK_LNG
+from amsterdam_rent_scraper.utils.neighborhoods import enrich_listing_with_neighborhood
 
 console = Console()
 
@@ -237,5 +238,8 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True) -> dict:
             bike_min, transit_min = estimate_commute_times(distance)
             listing["commute_time_bike_min"] = bike_min
             listing["commute_time_transit_min"] = transit_min
+
+    # Add neighborhood quality scores
+    enrich_listing_with_neighborhood(listing)
 
     return listing
