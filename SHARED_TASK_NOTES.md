@@ -3,6 +3,7 @@
 ## Current State
 - Core infrastructure complete: CLI, pipeline, export, database, commute calculation, neighborhoods
 - **README.md complete** - Setup, usage, architecture, configuration documented
+- **Transit routing NOW WORKING** - Uses Transitous (MOTIS API) for real public transit times
 - **Working scrapers** (9 total, all tested with regex fallback extraction):
   - `pararius` - HTML-based, reliable extraction
   - `huurwoningen` - JSON-LD structured data
@@ -12,7 +13,7 @@
   - `iamexpat` - Playwright-based, Next.js site, uses domcontentloaded wait
   - `rotsvast` - HTML-based, Dutch rental agency
   - `expathousingnetwork` - Playwright-based, Webflow site, expat-focused
-  - `huure` - HTML-based, Dutch rental aggregator, cursor-based pagination (NEW)
+  - `huure` - HTML-based, Dutch rental aggregator, cursor-based pagination
 - **Disabled scrapers**:
   - `funda` - aggressive anti-bot
   - `housinganywhere` - blocks headless browsers
@@ -52,26 +53,31 @@ rent-scraper db-info
 - CLI with scrape, export, db-info commands
 - SQLite database with deduplication
 - OSRM routing (bike/car times, route polylines)
+- **Transitous API for real transit routing** (duration + transfers)
 - Neighborhood detection and scoring
 - Interactive HTML report (cards/table/map views, filters, route display)
 - Excel export with all fields
 - 9 working scrapers
 
 ## Next Priority Tasks
-1. **Transit routing** - Currently uses heuristic; could integrate 9292.nl or similar
-2. **More scrapers** (if time permits) - Most viable sites already covered
+1. **Project is feature-complete** - All major features implemented
+2. **Polish/testing** (optional) - Run a full scrape to verify everything works
 
 ## Key Files
 - `src/amsterdam_rent_scraper/cli/main.py` - CLI commands
 - `src/amsterdam_rent_scraper/pipeline.py` - Main orchestration
 - `src/amsterdam_rent_scraper/storage/database.py` - SQLite with deduplication
-- `src/amsterdam_rent_scraper/utils/geo.py` - OSRM routing
+- `src/amsterdam_rent_scraper/utils/geo.py` - OSRM + Transitous routing
 - `src/amsterdam_rent_scraper/utils/neighborhoods.py` - Neighborhood scores
 - `src/amsterdam_rent_scraper/export/html_report.py` - Interactive HTML
-- `src/amsterdam_rent_scraper/scrapers/huure.py` - Huure.nl scraper (NEW)
+- `src/amsterdam_rent_scraper/scrapers/huure.py` - Huure.nl scraper
 
 ## Technical Notes
-- OSRM API: `http://router.project-osrm.org/route/v1/{cycling|driving}/lon1,lat1;lon2,lat2?overview=full&geometries=geojson`
+- **OSRM API**: `http://router.project-osrm.org/route/v1/{cycling|driving}/lon1,lat1;lon2,lat2?overview=full&geometries=geojson`
+- **Transitous API**: `https://api.transitous.org/api/v1/plan?fromPlace=lat,lon&toPlace=lat,lon&directModes=WALK&transitModes=TRANSIT`
+  - Free, no API key needed
+  - Returns duration + number of transfers
+  - Don't specify a time param (GTFS data may not cover future dates)
 - Target: Stroombaan 4, Amstelveen (52.3027, 4.8557)
 - Database: `output/listings.db`
 - **Next.js sites**: Use `domcontentloaded` wait instead of `networkidle`

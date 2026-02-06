@@ -20,9 +20,15 @@ geolocator = Nominatim(user_agent="amsterdam_rent_scraper")
 # OSRM public demo server (free, no API key required)
 OSRM_BASE_URL = "http://router.project-osrm.org/route/v1"
 
-# Rate limiting for OSRM (be respectful to free service)
+# Transitous API (MOTIS-based, free public transit routing for Netherlands)
+TRANSITOUS_BASE_URL = "https://api.transitous.org/api/v1"
+
+# Rate limiting for APIs (be respectful to free services)
 _last_osrm_request = 0.0
 OSRM_MIN_INTERVAL = 1.0  # seconds between requests
+
+_last_transitous_request = 0.0
+TRANSITOUS_MIN_INTERVAL = 1.0  # seconds between requests
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -78,6 +84,15 @@ def _rate_limit_osrm():
     _last_osrm_request = time.time()
 
 
+def _rate_limit_transitous():
+    """Ensure we don't hit Transitous API too frequently."""
+    global _last_transitous_request
+    elapsed = time.time() - _last_transitous_request
+    if elapsed < TRANSITOUS_MIN_INTERVAL:
+        time.sleep(TRANSITOUS_MIN_INTERVAL - elapsed)
+    _last_transitous_request = time.time()
+
+
 def get_osrm_route(
     from_lat: float,
     from_lon: float,
@@ -124,16 +139,77 @@ def get_osrm_route(
         return None
 
 
-def get_commute_routes(lat: float, lon: float) -> dict:
+def get_transit_route(
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+) -> Optional[dict]:
     """
-    Get bike and driving commute times to work location via OSRM.
+    Get public transit route from Transitous (MOTIS API).
+
+    Args:
+        from_lat, from_lon: Origin coordinates
+        to_lat, to_lon: Destination coordinates
 
     Returns:
-        dict with bike_min, driving_min, bike_route_coords, bike_distance_km
+        dict with 'duration_min', 'transfers' or None on failure
+    """
+    _rate_limit_transitous()
+
+    # Don't specify a time - the API defaults to "now" which ensures
+    # we get valid routes based on current GTFS data
+    url = (
+        f"{TRANSITOUS_BASE_URL}/plan?"
+        f"fromPlace={from_lat},{from_lon}&"
+        f"toPlace={to_lat},{to_lon}&"
+        f"directModes=WALK&"
+        f"transitModes=TRANSIT"
+    )
+
+    headers = {
+        "User-Agent": "AmsterdamRentScraper/1.0 (https://github.com/pierre/amsterdam-rent-scraper)"
+    }
+
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.get(url, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+
+            itineraries = data.get("itineraries", [])
+            if not itineraries:
+                return None
+
+            # Find the best itinerary (shortest duration with fewest transfers)
+            # Sort by duration, then by transfers
+            sorted_itineraries = sorted(
+                itineraries,
+                key=lambda x: (x.get("duration", 99999), x.get("transfers", 99))
+            )
+            best = sorted_itineraries[0]
+
+            return {
+                "duration_min": int(best["duration"] / 60),  # seconds to minutes
+                "transfers": best.get("transfers", 0),
+            }
+    except Exception as e:
+        console.print(f"[yellow]Transitous request failed: {e}[/]")
+        return None
+
+
+def get_commute_routes(lat: float, lon: float) -> dict:
+    """
+    Get bike, driving, and transit commute times to work location.
+
+    Returns:
+        dict with bike_min, driving_min, transit_min, bike_route_coords, bike_distance_km, transit_transfers
     """
     result = {
         "bike_min": None,
         "driving_min": None,
+        "transit_min": None,
+        "transit_transfers": None,
         "bike_route_coords": None,
         "bike_distance_km": None,
     }
@@ -149,6 +225,12 @@ def get_commute_routes(lat: float, lon: float) -> dict:
     driving_route = get_osrm_route(lat, lon, WORK_LAT, WORK_LNG, profile="driving")
     if driving_route:
         result["driving_min"] = driving_route["duration_min"]
+
+    # Get transit route via Transitous (MOTIS API)
+    transit_route = get_transit_route(lat, lon, WORK_LAT, WORK_LNG)
+    if transit_route:
+        result["transit_min"] = transit_route["duration_min"]
+        result["transit_transfers"] = transit_route["transfers"]
 
     return result
 
@@ -217,7 +299,7 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True) -> dict:
         listing["distance_km"] = round(distance, 2)
 
         if use_osrm:
-            # Get real commute times via OSRM
+            # Get real commute times via OSRM and Transitous
             routes = get_commute_routes(lat, lon)
             if routes["bike_min"] is not None:
                 listing["commute_time_bike_min"] = routes["bike_min"]
@@ -230,9 +312,14 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True) -> dict:
             if routes["driving_min"] is not None:
                 listing["commute_time_driving_min"] = routes["driving_min"]
 
-            # Transit estimate (OSRM doesn't have transit, use heuristic)
-            _, transit_min = estimate_commute_times(distance)
-            listing["commute_time_transit_min"] = transit_min
+            # Transit via Transitous (real routing) or fallback to heuristic
+            if routes["transit_min"] is not None:
+                listing["commute_time_transit_min"] = routes["transit_min"]
+                listing["transit_transfers"] = routes["transit_transfers"]
+            else:
+                # Fallback to heuristic if API fails
+                _, transit_min = estimate_commute_times(distance)
+                listing["commute_time_transit_min"] = transit_min
         else:
             # Use simple estimates
             bike_min, transit_min = estimate_commute_times(distance)
