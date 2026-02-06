@@ -96,7 +96,7 @@ class PlaywrightBaseScraper(abc.ABC):
             page = self._new_page()
 
         try:
-            page.goto(url, wait_until="networkidle", timeout=30000)
+            page.goto(url, wait_until="networkidle", timeout=60000)
 
             # Wait for specific selector if provided
             if wait_selector:

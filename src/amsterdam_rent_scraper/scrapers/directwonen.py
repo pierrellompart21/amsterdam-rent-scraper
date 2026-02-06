@@ -34,7 +34,7 @@ class DirectWonenScraper(PlaywrightBaseScraper):
             console.print(f"  Fetching search page {page_num}: {search_url}")
 
             try:
-                page.goto(search_url, wait_until="networkidle", timeout=30000)
+                page.goto(search_url, wait_until="networkidle", timeout=60000)
                 page.wait_for_timeout(2000)
 
                 # Scroll to trigger lazy loading
