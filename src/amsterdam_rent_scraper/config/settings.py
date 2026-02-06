@@ -160,6 +160,14 @@ RENTAL_SITES: list[RentalSite] = [
         needs_js=True,
         notes="Expat-focused housing platform. Next.js site requires Playwright.",
     ),
+    RentalSite(
+        name="rotsvast",
+        base_url="https://www.rotsvast.nl",
+        search_url_template="https://www.rotsvast.nl/huren/amsterdam/",
+        scraper_class="amsterdam_rent_scraper.scrapers.rotsvast.RotsvastScraper",
+        needs_js=False,
+        notes="Dutch rental agency with permissive robots.txt.",
+    ),
 ]
 
 

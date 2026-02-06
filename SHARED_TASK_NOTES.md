@@ -3,13 +3,14 @@
 ## Current State
 - Core infrastructure complete: CLI, pipeline, export, database, commute calculation, neighborhoods
 - **README.md complete** - Setup, usage, architecture, configuration documented
-- **Working scrapers** (all tested with regex fallback extraction):
+- **Working scrapers** (7 total, all tested with regex fallback extraction):
   - `pararius` - HTML-based, reliable extraction
   - `huurwoningen` - JSON-LD structured data
   - `123wonen` - JSON-LD + HTML fallback
   - `huurstunt` - Playwright-based
   - `kamernet` - Playwright-based, extracts title/address from URL
   - `iamexpat` - Playwright-based, Next.js site, uses domcontentloaded wait
+  - `rotsvast` - HTML-based, Dutch rental agency (NEW)
 - **Disabled scrapers**:
   - `funda` - aggressive anti-bot
   - `housinganywhere` - blocks headless browsers
@@ -19,6 +20,7 @@
   - `holland2stay` - robots.txt disallows /residences/
   - `vesteda` - complex API, dynamic content doesn't load
   - `onlyexpats` - robots.txt blocks ClaudeBot/anthropic-ai
+  - `expatrentals.eu` - robots.txt blocks AI training/scraping
 
 ## CLI Quick Reference
 ```bash
@@ -28,8 +30,8 @@ pip install -e . && playwright install chromium
 # Test run
 rent-scraper scrape --test-run --sites pararius --skip-llm
 
-# Full scrape
-rent-scraper scrape --sites pararius,huurwoningen,iamexpat --skip-llm
+# Full scrape (all 7 enabled sites)
+rent-scraper scrape --sites pararius,huurwoningen,iamexpat,rotsvast --skip-llm
 
 # Export from DB
 rent-scraper export --format html --min-price 1200 --max-price 1800
@@ -45,13 +47,13 @@ rent-scraper db-info
 - Neighborhood detection and scoring
 - Interactive HTML report (cards/table/map views, filters, route display)
 - Excel export with all fields
-- 6 working scrapers
+- 7 working scrapers
 
 ## Next Priority Tasks
-1. **More scrapers** (if time permits):
+1. **Transit routing** - Currently uses heuristic; could integrate 9292.nl or similar
+2. **More scrapers** (if time permits):
+   - `expathousingnetwork.nl` - permissive robots.txt, has Amsterdam listings
    - Research other sites with permissive robots.txt
-   - Potential: expatrentals.eu, expathousingnetwork.nl
-2. **Transit routing** - Currently uses heuristic; could integrate 9292.nl or similar
 
 ## Key Files
 - `src/amsterdam_rent_scraper/cli/main.py` - CLI commands
@@ -60,9 +62,11 @@ rent-scraper db-info
 - `src/amsterdam_rent_scraper/utils/geo.py` - OSRM routing
 - `src/amsterdam_rent_scraper/utils/neighborhoods.py` - Neighborhood scores
 - `src/amsterdam_rent_scraper/export/html_report.py` - Interactive HTML
+- `src/amsterdam_rent_scraper/scrapers/rotsvast.py` - Rotsvast scraper (NEW)
 
 ## Technical Notes
 - OSRM API: `http://router.project-osrm.org/route/v1/{cycling|driving}/lon1,lat1;lon2,lat2?overview=full&geometries=geojson`
 - Target: Stroombaan 4, Amstelveen (52.3027, 4.8557)
 - Database: `output/listings.db`
 - **Next.js sites**: Use `domcontentloaded` wait instead of `networkidle`
+- **Rotsvast**: Listings often €2000+, may need higher --max-price filter

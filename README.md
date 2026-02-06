@@ -4,7 +4,7 @@ A CLI tool to scrape rental listings from multiple Dutch housing websites, calcu
 
 ## Features
 
-- **Multi-site scraping** - Pararius, Huurwoningen, 123Wonen, Huurstunt, Kamernet, IamExpat
+- **Multi-site scraping** - Pararius, Huurwoningen, 123Wonen, Huurstunt, Kamernet, IamExpat, Rotsvast
 - **Commute calculation** - Real bike/driving times via OSRM routing API
 - **Neighborhood scoring** - Safety, amenities, green space, restaurants, expat-friendliness (1-10)
 - **SQLite database** - Persistent storage with deduplication
@@ -153,6 +153,7 @@ Full data export at `output/amsterdam_rentals.xlsx` with all fields.
 | huurstunt.nl | Enabled | Playwright | Dynamic content |
 | kamernet.nl | Enabled | Playwright | Rooms and apartments |
 | iamexpat.nl | Enabled | Playwright | Expat-focused, Next.js |
+| rotsvast.nl | Enabled | HTML | Dutch rental agency |
 | funda.nl | Disabled | - | Aggressive anti-bot |
 | housinganywhere.com | Disabled | - | Blocks headless browsers |
 | directwonen.nl | Disabled | - | Requires subscription |
