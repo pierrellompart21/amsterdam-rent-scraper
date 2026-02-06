@@ -20,7 +20,7 @@ EXTRACTION_PROMPT = """You are extracting structured rental listing information 
 
 Extract the following fields from the content. Return ONLY valid JSON with these exact keys (use null for missing values):
 
-{
+{{
   "title": "listing title or address",
   "price_eur": 1500,
   "address": "full street address",
@@ -47,7 +47,7 @@ Extract the following fields from the content. Return ONLY valid JSON with these
   "pros": "key positive aspects (location, amenities, etc)",
   "cons": "any red flags or downsides mentioned",
   "neighborhood_score": "Good/Average/Below Average based on description"
-}
+}}
 
 Important:
 - Extract numbers as integers or floats, not strings

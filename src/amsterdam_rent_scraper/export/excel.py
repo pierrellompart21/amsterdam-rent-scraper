@@ -44,6 +44,13 @@ COLUMN_ORDER = [
 ]
 
 
+def _serialize_value(value: Any) -> Any:
+    """Convert non-serializable values to strings for Excel compatibility."""
+    if isinstance(value, list):
+        return "; ".join(str(v) for v in value)
+    return value
+
+
 def listings_to_dataframe(listings: list[dict | RentalListing]) -> pd.DataFrame:
     """Convert listings to a pandas DataFrame."""
     data = []
@@ -52,6 +59,8 @@ def listings_to_dataframe(listings: list[dict | RentalListing]) -> pd.DataFrame:
             row = listing.model_dump()
         else:
             row = listing
+        # Serialize any list values to strings for Excel compatibility
+        row = {k: _serialize_value(v) for k, v in row.items()}
         data.append(row)
 
     df = pd.DataFrame(data)
