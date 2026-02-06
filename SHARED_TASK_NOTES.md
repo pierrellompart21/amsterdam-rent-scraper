@@ -16,10 +16,8 @@
   - `directwonen` - requires login/subscription to see prices and details
 
 ## Recent Changes (this iteration)
-- Added post-extraction price filtering (filters listings outside EUR range after extraction)
-- Added `--apartments-only` CLI flag to filter out rooms/shared housing
-- Fixed Kamernet title/address extraction (derives from URL when not in HTML)
-- Disabled DirectWonen (requires paywall/login to see actual rental prices)
+- Added `--min-surface` and `--min-rooms` CLI flags for post-extraction filtering
+- Filters are applied after regex extraction, keeping listings without data for manual review
 
 ## CLI Options
 ```bash
@@ -29,6 +27,9 @@ playwright install chromium
 
 # Quick test (3 listings per site)
 rent-scraper --test-run --sites pararius --skip-llm
+
+# With surface and rooms filtering (recommended defaults: 60m2, 2 rooms)
+rent-scraper --max-listings 10 --sites pararius --skip-llm --min-surface 60 --min-rooms 2
 
 # Apartments only (filter out rooms/shared)
 rent-scraper --max-listings 20 --sites kamernet --apartments-only --skip-llm
@@ -41,19 +42,21 @@ rent-scraper --max-listings 10 --sites pararius,huurwoningen
 ```
 
 ## Next Priority Tasks
-1. **Test LLM extraction**: Run with `--sites pararius` (no --skip-llm) to validate Ollama integration
-2. **Improve data quality**: Some sites don't respect URL price filters, now post-filtered in pipeline
-3. **HTML report filters**: Add interactive price/rooms/distance filters to the HTML report
-4. **Test with more listings**: Run `rent-scraper --max-listings 50 --sites pararius,huurwoningen,123wonen,huurstunt,kamernet --skip-llm` and verify data quality
+1. **Progress bars**: Add tqdm/rich progress bars for per-site progress (pages/listings found)
+2. **Default full pagination**: When no --max-listings, scrape ALL pages until no more results
+3. **Commute calculation**: Use OSRM API for bike/transit times to Stroombaan 4, Amstelveen
+4. **Neighborhood quality**: Add hardcoded Amsterdam neighborhood scores
+5. **HTML report improvements**: Interactive filters, card layout, commute route on map click
+6. **Search for missing rental sites**: vbo.nl, jaap.nl, mvgm.nl, vesteda.com, holland2stay.com
+7. **SQLite database**: Store listings with deduplication by URL
 
 ## Key Files
-- `src/amsterdam_rent_scraper/cli/main.py` - CLI with --apartments-only option
-- `src/amsterdam_rent_scraper/pipeline.py` - Price filtering + apartments-only filtering
-- `src/amsterdam_rent_scraper/scrapers/kamernet.py` - URL-based title/address extraction
-- `src/amsterdam_rent_scraper/config/settings.py` - Site configs (directwonen disabled)
+- `src/amsterdam_rent_scraper/cli/main.py` - CLI with --min-surface, --min-rooms options
+- `src/amsterdam_rent_scraper/pipeline.py` - Post-extraction filtering (price, apartments-only, surface, rooms)
+- `src/amsterdam_rent_scraper/export/html_report.py` - Leaflet map with price-colored markers
+- `src/amsterdam_rent_scraper/config/settings.py` - Site configs, work location coords
 
 ## Technical Notes
-- Post-extraction price filtering catches listings where sites don't respect URL params
-- `--apartments-only` filters by property_type, URL patterns, and title keywords
-- Kamernet extracts title/address from URL pattern: `/huren/TYPE-amsterdam/STREET/TYPE-ID`
-- DirectWonen disabled because all prices on page are subscription fees (€10.95, etc.)
+- Post-extraction filtering keeps listings without data (null surface/rooms) for manual review
+- Filters run after regex/LLM extraction to catch sites that don't respect URL params
+- Work location: Stroombaan 4, 1181 VX Amstelveen (52.3027, 4.8557)

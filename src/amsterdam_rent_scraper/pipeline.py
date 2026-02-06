@@ -40,6 +40,8 @@ def run_pipeline(
     max_price: int = None,
     max_listings_per_site: Optional[int] = None,
     apartments_only: bool = False,
+    min_surface: Optional[int] = None,
+    min_rooms: Optional[int] = None,
 ) -> list[dict]:
     """
     Run the full scraping pipeline.
@@ -172,6 +174,30 @@ def run_pipeline(
         rooms_filtered = pre_filter_count - len(all_listings)
         if rooms_filtered > 0:
             console.print(f"[yellow]Filtered {rooms_filtered} room/shared listings (apartments only mode)[/]")
+
+    # Filter by minimum surface area
+    if min_surface:
+        pre_filter_count = len(all_listings)
+        all_listings = [
+            listing for listing in all_listings
+            if listing.get("surface_m2") is None  # Keep listings without surface (for review)
+            or listing.get("surface_m2", 0) >= min_surface
+        ]
+        surface_filtered = pre_filter_count - len(all_listings)
+        if surface_filtered > 0:
+            console.print(f"[yellow]Filtered {surface_filtered} listings below {min_surface} m2[/]")
+
+    # Filter by minimum rooms
+    if min_rooms:
+        pre_filter_count = len(all_listings)
+        all_listings = [
+            listing for listing in all_listings
+            if listing.get("rooms") is None  # Keep listings without rooms (for review)
+            or listing.get("rooms", 0) >= min_rooms
+        ]
+        rooms_filtered = pre_filter_count - len(all_listings)
+        if rooms_filtered > 0:
+            console.print(f"[yellow]Filtered {rooms_filtered} listings with fewer than {min_rooms} rooms[/]")
 
     # Geographic enrichment
     console.print("\n[bold cyan]Adding geographic data...[/]")
