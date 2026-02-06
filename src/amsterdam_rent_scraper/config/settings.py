@@ -110,25 +110,19 @@ RENTAL_SITES: list[RentalSite] = [
     ),
     RentalSite(
         name="directwonen",
-        base_url="https://www.directwonen.nl",
-        search_url_template=(
-            "https://www.directwonen.nl/huurwoningen/amsterdam"
-            "?minprice={min_price}&maxprice={max_price}"
-        ),
+        base_url="https://directwonen.nl",
+        search_url_template="https://directwonen.nl/huurwoningen-huren/amsterdam",
         scraper_class="amsterdam_rent_scraper.scrapers.directwonen.DirectWonenScraper",
         needs_js=True,
-        notes="Listings load dynamically via JavaScript.",
+        notes="Listings load dynamically. Price filtering done in scraper.",
     ),
     RentalSite(
         name="huurstunt",
         base_url="https://www.huurstunt.nl",
-        search_url_template=(
-            "https://www.huurstunt.nl/huren/amsterdam/"
-            "?min={min_price}&max={max_price}"
-        ),
+        search_url_template="https://www.huurstunt.nl/huren/amsterdam/",
         scraper_class="amsterdam_rent_scraper.scrapers.huurstunt.HuurstuntScraper",
         needs_js=True,
-        notes="Listings load dynamically via JavaScript.",
+        notes="Listings load dynamically. No URL price filtering available.",
     ),
     RentalSite(
         name="roofz",
