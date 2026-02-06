@@ -84,17 +84,30 @@ def enrich_listing_with_geo(listing: dict) -> dict:
     lon = listing.get("longitude")
 
     if not lat or not lon:
-        # Try to geocode from address
+        # Try to geocode from address or postal code
         address = listing.get("address") or listing.get("title")
-        if address:
-            postal = listing.get("postal_code")
-            if postal:
+        postal = listing.get("postal_code")
+
+        # Try different geocoding strategies
+        coords = None
+
+        # Strategy 1: Use postal code + Amsterdam (most reliable for NL)
+        if postal and not coords:
+            # Normalize postal code (remove spaces)
+            postal_clean = postal.replace(" ", "")
+            coords = geocode_address(f"{postal_clean}, Amsterdam")
+
+        # Strategy 2: Use address directly (avoid adding postal if already present)
+        if address and not coords:
+            # Check if postal code is already in address
+            if postal and postal.replace(" ", "") not in address.replace(" ", ""):
                 address = f"{address}, {postal}"
             coords = geocode_address(address)
-            if coords:
-                listing["latitude"] = coords[0]
-                listing["longitude"] = coords[1]
-                lat, lon = coords
+
+        if coords:
+            listing["latitude"] = coords[0]
+            listing["longitude"] = coords[1]
+            lat, lon = coords
 
     # Calculate distance and commute times
     if lat and lon:

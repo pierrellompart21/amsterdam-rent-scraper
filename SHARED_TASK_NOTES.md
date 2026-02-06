@@ -2,7 +2,7 @@
 
 ## Current State
 - Core infrastructure complete: project structure, CLI, pipeline, export modules
-- **Working scrapers** (tested with --skip-llm):
+- **Working scrapers** (tested with LLM extraction):
   - `pararius` - HTML-based, works well
   - `huurwoningen` - uses JSON-LD structured data
   - `123wonen` - uses JSON-LD + HTML fallback
@@ -14,13 +14,10 @@
   - `housinganywhere` - blocks headless browsers
   - `rentslam` - not loading individual listings
   - `roofz` - site timing out/not responding
-- **Regex fallback extraction**: Added in `llm/regex_fallback.py` - extracts price, surface, rooms, postal code, etc. when LLM is unavailable
-- **HTML report improvements**:
-  - Colored markers by price (green < 1300, orange 1300-1700, red > 1700)
-  - Commute distance circles (5/10/15 km) around office
-  - Map legend for price and distance
-  - Price-colored table cells
-- **LLM extraction**: Requires Ollama with `llama3.2` model
+- **LLM extraction**: Tested with Ollama llama3.2 - works well, extracts price/size/rooms/address/description
+- **Geocoding**: Fixed to handle postal codes better (avoids duplicate postal in address)
+- **Regex fallback extraction**: Added in `llm/regex_fallback.py` - runs automatically
+- **HTML report**: Colored markers by price, commute distance circles, map legend, price-colored table cells
 - **Export**: Excel with styled columns, interactive HTML with Leaflet map
 
 ## How to Test
@@ -34,29 +31,31 @@ playwright install chromium
 rent-scraper --test-run --sites pararius,huurwoningen,123wonen,directwonen,huurstunt,kamernet --skip-llm
 
 # Test with LLM (requires: ollama pull llama3.2 && ollama serve)
-rent-scraper --test-run --sites pararius,huurwoningen,123wonen
+rent-scraper --test-run --sites pararius,huurwoningen,123wonen,kamernet
 
 # View output/amsterdam_rentals.html in browser
 ```
 
 ## Next Priority Tasks
-1. **Test LLM extraction** with Ollama (priority 4 from original list):
-   - Run: `ollama pull llama3.2 && ollama serve`
-   - Test: `rent-scraper --test-run --sites pararius`
-   - Fix any JSON parsing issues in extractor
+1. **Run full (non-test) scrape** and validate output quality
+   - Command: `rent-scraper --sites pararius,huurwoningen,123wonen,directwonen,huurstunt,kamernet`
+   - Check for data quality issues (parking spots, weekly rates, etc.)
 
 2. **Fix broken scrapers** - investigate if stealth options can bypass anti-bot:
    - funda: try playwright-stealth or different browser fingerprints
    - housinganywhere: same as above
    - roofz: check if site is actually up
 
-3. **Run full (non-test) scrape** and validate output quality
+3. **Add data quality filters**:
+   - Filter out parking spots (price < 300 or description contains "parkeerplaats")
+   - Filter out rooms/shared housing if user wants full apartments only
 
 ## Key Files
 - `src/amsterdam_rent_scraper/scrapers/base.py` - base HTTP scraper class
 - `src/amsterdam_rent_scraper/scrapers/playwright_base.py` - Playwright base class for JS sites
 - `src/amsterdam_rent_scraper/llm/extractor.py` - LLM extraction (uses regex fallback automatically)
 - `src/amsterdam_rent_scraper/llm/regex_fallback.py` - Regex patterns for price, m2, rooms, etc.
+- `src/amsterdam_rent_scraper/utils/geo.py` - Geocoding and distance calculations
 - `src/amsterdam_rent_scraper/export/html_report.py` - HTML report with map
 - `src/amsterdam_rent_scraper/config/settings.py` - site configs + OLLAMA_MODEL setting
 
@@ -65,4 +64,5 @@ rent-scraper --test-run --sites pararius,huurwoningen,123wonen
 - Playwright scrapers: inherit from `PlaywrightBaseScraper`, same methods but with Playwright Page object
 - Site config in settings.py: `needs_js=True` marks Playwright-required sites, `enabled=False` disables broken scrapers
 - OLLAMA_MODEL defaults to "llama3.2" in settings.py
-- Regex fallback runs automatically after LLM extraction (or instead of it when --skip-llm or Ollama unavailable)
+- Geocoding uses postal code + Amsterdam format for best results in NL
+- Some search results may include non-apartments (parking spots, storage) - consider filtering by description or minimum price
