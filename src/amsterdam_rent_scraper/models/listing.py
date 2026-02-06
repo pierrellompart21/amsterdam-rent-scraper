@@ -67,6 +67,11 @@ class RentalListing(BaseModel):
     )
     commute_time_bike_min: Optional[int] = None
     commute_time_transit_min: Optional[int] = None
+    commute_time_driving_min: Optional[int] = None
+    # Route geometry for map display (GeoJSON coordinates)
+    bike_route_coords: Optional[list] = Field(
+        None, description="Bike route coordinates [[lon,lat], ...] for map display"
+    )
     neighborhood_score: Optional[str] = Field(
         None, description="LLM assessment of neighborhood quality"
     )
