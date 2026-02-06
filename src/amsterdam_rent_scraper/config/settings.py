@@ -6,8 +6,8 @@ from pathlib import Path
 
 # === WORK LOCATION ===
 WORK_ADDRESS = "Stroombaan 4, 1181 VX Amstelveen, Netherlands"
-WORK_LAT = 52.2958
-WORK_LNG = 4.8374
+WORK_LAT = 52.3027  # Corrected coordinates for Stroombaan 4
+WORK_LNG = 4.8557
 
 # === SEARCH PARAMETERS ===
 MIN_PRICE = 1000

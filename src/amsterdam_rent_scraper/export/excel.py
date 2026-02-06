@@ -34,6 +34,7 @@ COLUMN_ORDER = [
     ("pets_allowed", "Pets"),
     ("distance_km", "Distance (km)"),
     ("commute_time_bike_min", "Bike (min)"),
+    ("commute_time_driving_min", "Driving (min)"),
     ("commute_time_transit_min", "Transit (min)"),
     ("description_summary", "Summary"),
     ("pros", "Pros"),

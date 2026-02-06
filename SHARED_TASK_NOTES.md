@@ -16,9 +16,14 @@
   - `directwonen` - requires login/subscription to see prices and details
 
 ## Recent Changes (this iteration)
-- Added `--min-surface` and `--min-rooms` CLI filters (post-extraction filtering)
-- Replaced tqdm with rich progress bars for consistent polished UI
-- Implemented full pagination: when no --max-listings set, scrapes ALL pages until exhausted
+- **OSRM Commute Routing**: Real bike and driving times via OSRM API (free, no key needed)
+  - `get_osrm_route()` and `get_commute_routes()` in `utils/geo.py`
+  - Returns actual routed distance/time + route coordinates for map display
+  - Rate-limited to 1 req/sec to respect free service
+- Added `commute_time_driving_min` and `bike_route_coords` fields to model
+- Updated HTML report: bike/car time columns, max bike commute filter, route polyline on marker click
+- Updated Excel export with driving time column
+- Fixed work coordinates to (52.3027, 4.8557) for Stroombaan 4, Amstelveen
 
 ## CLI Options
 ```bash
@@ -34,28 +39,25 @@ rent-scraper --max-listings 10 --sites pararius --skip-llm --min-surface 60 --mi
 
 # Full run - scrapes ALL available listings (paginates until no more results)
 rent-scraper --sites pararius,huurwoningen --skip-llm
-
-# Limited full run
-rent-scraper --max-listings 50 --sites pararius,huurwoningen,123wonen,huurstunt,kamernet --skip-llm
 ```
 
 ## Next Priority Tasks
-1. **Commute calculation**: Add real commute times to target (Stroombaan 4, Amstelveen) via OpenRouteService/OSRM
-2. **Neighborhood quality**: Add quality-of-life scores per Amsterdam district
-3. **HTML report improvements**: Interactive filters, colored markers by price, commute route overlay
-4. **More rental sites**: Search for vbo.nl, jaap.nl, vesteda.com, holland2stay.com
-5. **SQLite database**: Store listings with deduplication by URL
-6. **README.md**: Setup instructions, usage examples, architecture overview
+1. **Neighborhood quality scores** - Hardcode Amsterdam district ratings (safety, green_space, amenities, etc.)
+2. **SQLite database** - Store listings with deduplication by URL, add `export --format excel/html` command
+3. **HTML report improvements** - Cards layout, price range slider, colored markers, modern CSS
+4. **More rental sites** - Search for vesteda.com, holland2stay.com, iamexpat.nl/housing
+5. **README.md** - Setup instructions, usage examples, architecture
 
 ## Key Files
 - `src/amsterdam_rent_scraper/cli/main.py` - CLI with --apartments-only, --min-surface, --min-rooms
 - `src/amsterdam_rent_scraper/pipeline.py` - Post-extraction filtering, rich progress bars
-- `src/amsterdam_rent_scraper/scrapers/base.py` - Base scraper with rich progress, max_listings=None means unlimited
-- `src/amsterdam_rent_scraper/scrapers/playwright_base.py` - Playwright base with same behavior
+- `src/amsterdam_rent_scraper/utils/geo.py` - OSRM routing, geocoding, commute calculations
+- `src/amsterdam_rent_scraper/models/listing.py` - RentalListing with commute fields
+- `src/amsterdam_rent_scraper/export/html_report.py` - Interactive HTML with route display
 
 ## Technical Notes
-- Post-extraction filtering: price, apartments-only, min-surface, min-rooms
-- Field names: `surface_m2` (not surface_sqm), `rooms`, `price_eur`
-- max_listings=None (default in full mode) = paginate until no more results
+- OSRM API: `http://router.project-osrm.org/route/v1/{cycling|driving}/lon1,lat1;lon2,lat2?overview=full&geometries=geojson`
+- Transit times still use heuristic (OSRM doesn't have transit routing)
+- Route coords stored as `[[lon,lat], ...]` (OSRM format), converted to `[lat,lon]` for Leaflet display
 - Target: Stroombaan 4, 1181 VX Amstelveen (52.3027, 4.8557)
-- Price range: EUR 1000-2000, Min surface: 60m², Min rooms: 2
+- Price range: EUR 1000-2000, Min surface: 60m2, Min rooms: 2

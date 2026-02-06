@@ -49,7 +49,7 @@ HTML_TEMPLATE = """
         .view-toggle button { background: #ecf0f1; color: #2c3e50; }
         .view-toggle button.active { background: #3498db; color: white; }
 
-        #map { height: 500px; border-radius: 8px; margin-bottom: 20px; display: none; position: relative; }
+        #map { height: 600px; border-radius: 8px; margin-bottom: 20px; display: none; position: relative; }
         #map.visible { display: block; }
         .map-legend { position: absolute; bottom: 20px; left: 10px; background: white; padding: 10px 15px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 1000; font-size: 0.8rem; }
         .map-legend h4 { margin: 0 0 8px 0; font-size: 0.85rem; }
@@ -114,6 +114,10 @@ HTML_TEMPLATE = """
                 <div class="filter-group">
                     <label>Max Distance (km)</label>
                     <input type="number" id="maxDistance" placeholder="10">
+                </div>
+                <div class="filter-group">
+                    <label>Max Bike Commute (min)</label>
+                    <input type="number" id="maxBikeTime" placeholder="30">
                 </div>
                 <div class="filter-group">
                     <label>Furnished</label>
@@ -182,6 +186,8 @@ HTML_TEMPLATE = """
                     <th data-sort="furnished">Furnished</th>
                     <th data-sort="available_date">Available</th>
                     <th data-sort="distance_km">Distance</th>
+                    <th data-sort="commute_time_bike_min">Bike</th>
+                    <th data-sort="commute_time_driving_min">Car</th>
                     <th>Summary</th>
                     <th>Link</th>
                 </tr>
@@ -197,6 +203,7 @@ HTML_TEMPLATE = """
         const workLocation = [{{ work_lat }}, {{ work_lng }}];
         let map = null;
         let markers = [];
+        let currentRoute = null;  // Store current route polyline
         let currentSort = { column: 'price_eur', direction: 'asc' };
 
         function initMap() {
@@ -260,21 +267,56 @@ HTML_TEMPLATE = """
             });
         }
 
+        function clearRoute() {
+            if (currentRoute) {
+                map.removeLayer(currentRoute);
+                currentRoute = null;
+            }
+        }
+
+        function showRoute(listing) {
+            clearRoute();
+            if (!listing.bike_route_coords || listing.bike_route_coords.length === 0) {
+                return;
+            }
+            // OSRM returns [lon, lat], Leaflet needs [lat, lon]
+            const latLngs = listing.bike_route_coords.map(coord => [coord[1], coord[0]]);
+            currentRoute = L.polyline(latLngs, {
+                color: '#3498db',
+                weight: 4,
+                opacity: 0.8,
+                dashArray: '10, 5'
+            }).addTo(map);
+            // Fit map to show route
+            map.fitBounds(currentRoute.getBounds().pad(0.1));
+        }
+
         function updateMap(filteredListings) {
             markers.forEach(m => map.removeLayer(m));
             markers = [];
+            clearRoute();
 
             filteredListings.forEach(listing => {
                 if (listing.latitude && listing.longitude) {
-                    const marker = L.marker([listing.latitude, listing.longitude], {
-                        icon: createPriceMarker(listing.price_eur)
-                    })
-                        .bindPopup(`
+                    const bikeInfo = listing.commute_time_bike_min ? `🚴 ${listing.commute_time_bike_min} min` : '';
+                    const carInfo = listing.commute_time_driving_min ? `🚗 ${listing.commute_time_driving_min} min` : '';
+                    const commuteInfo = [bikeInfo, carInfo].filter(x => x).join(' | ');
+                    const hasRoute = listing.bike_route_coords && listing.bike_route_coords.length > 0;
+
+                    const popupContent = `
+                        <div style="min-width:200px;">
                             <b>${listing.title || listing.address || 'Listing'}</b><br>
                             <b style="color:${getPriceColor(listing.price_eur)}">EUR ${listing.price_eur || '?'}/month</b><br>
-                            ${listing.surface_m2 ? listing.surface_m2 + ' m2' : ''} | ${listing.rooms || '?'} rooms<br>
-                            <a href="${listing.listing_url}" target="_blank">View listing</a>
-                        `);
+                            ${listing.surface_m2 ? listing.surface_m2 + ' m²' : ''} | ${listing.rooms || '?'} rooms<br>
+                            ${commuteInfo ? `<span style="color:#666;">${commuteInfo}</span><br>` : ''}
+                            ${hasRoute ? `<button onclick="showRoute(listings.find(l => l.listing_url === '${listing.listing_url}'))" style="margin-top:5px;padding:3px 8px;background:#3498db;color:white;border:none;border-radius:3px;cursor:pointer;">Show bike route</button><br>` : ''}
+                            <a href="${listing.listing_url}" target="_blank" style="color:#3498db;">View listing →</a>
+                        </div>
+                    `;
+
+                    const marker = L.marker([listing.latitude, listing.longitude], {
+                        icon: createPriceMarker(listing.price_eur)
+                    }).bindPopup(popupContent);
                     marker.addTo(map);
                     markers.push(marker);
                 }
@@ -306,6 +348,8 @@ HTML_TEMPLATE = """
                     <td>${listing.furnished ? `<span class="tag tag-${listing.furnished.toLowerCase()}">${listing.furnished}</span>` : '-'}</td>
                     <td>${listing.available_date || '-'}</td>
                     <td>${listing.distance_km ? listing.distance_km.toFixed(1) + ' km' : '-'}</td>
+                    <td>${listing.commute_time_bike_min ? listing.commute_time_bike_min + ' min' : '-'}</td>
+                    <td>${listing.commute_time_driving_min ? listing.commute_time_driving_min + ' min' : '-'}</td>
                     <td class="summary">${listing.description_summary || '-'}</td>
                     <td><a href="${listing.listing_url}" target="_blank" class="url-link">View</a></td>
                 `;
@@ -330,6 +374,7 @@ HTML_TEMPLATE = """
             const maxPrice = parseInt(document.getElementById('maxPrice').value) || 99999;
             const minRooms = parseInt(document.getElementById('minRooms').value) || 0;
             const maxDistance = parseFloat(document.getElementById('maxDistance').value) || 99999;
+            const maxBikeTime = parseInt(document.getElementById('maxBikeTime').value) || 99999;
             const furnished = document.getElementById('furnished').value;
             const source = document.getElementById('source').value;
 
@@ -337,6 +382,7 @@ HTML_TEMPLATE = """
                 if (l.price_eur && (l.price_eur < minPrice || l.price_eur > maxPrice)) return false;
                 if (l.rooms && l.rooms < minRooms) return false;
                 if (l.distance_km && l.distance_km > maxDistance) return false;
+                if (l.commute_time_bike_min && l.commute_time_bike_min > maxBikeTime) return false;
                 if (furnished && l.furnished !== furnished) return false;
                 if (source && l.source_site !== source) return false;
                 return true;
@@ -375,6 +421,7 @@ HTML_TEMPLATE = """
             document.getElementById('maxPrice').value = '2000';
             document.getElementById('minRooms').value = '';
             document.getElementById('maxDistance').value = '';
+            document.getElementById('maxBikeTime').value = '';
             document.getElementById('furnished').value = '';
             document.getElementById('source').value = '';
             applyFilters();
