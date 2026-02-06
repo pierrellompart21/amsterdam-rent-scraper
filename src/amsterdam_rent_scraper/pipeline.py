@@ -19,6 +19,7 @@ from amsterdam_rent_scraper.config.settings import (
     MIN_PRICE,
     MAX_PRICE,
     OUTPUT_DIR,
+    DATABASE_PATH,
     get_enabled_sites,
 )
 from amsterdam_rent_scraper.export.excel import export_to_excel
@@ -26,6 +27,7 @@ from amsterdam_rent_scraper.export.html_report import export_to_html
 from amsterdam_rent_scraper.llm.extractor import OllamaExtractor
 from amsterdam_rent_scraper.llm.regex_fallback import regex_extract_from_html
 from amsterdam_rent_scraper.models.listing import RentalListing
+from amsterdam_rent_scraper.storage.database import ListingDatabase
 from amsterdam_rent_scraper.utils.geo import enrich_listing_with_geo
 
 console = Console()
@@ -242,6 +244,14 @@ def run_pipeline(
     for listing in all_listings:
         listing["scraped_at"] = now
 
+    # Save to database
+    console.print("\n[bold cyan]Saving to database...[/]")
+    db_path = output_dir / "listings.db"
+    with ListingDatabase(db_path) as db:
+        new_count, updated_count = db.bulk_upsert(all_listings)
+        total_in_db = db.get_listing_count()
+        console.print(f"  [green]New: {new_count}[/], [yellow]Updated: {updated_count}[/], Total in DB: {total_in_db}")
+
     # Export
     console.print("\n[bold cyan]Exporting results...[/]")
     timestamp = now.strftime("%Y%m%d_%H%M%S")
@@ -259,6 +269,7 @@ def run_pipeline(
 
     console.print("\n[bold green]Pipeline complete![/]")
     console.print(f"  Listings: {len(all_listings)}")
+    console.print(f"  Database: {db_path}")
     console.print(f"  Excel: {excel_path}")
     console.print(f"  HTML: {html_path}")
 
