@@ -17,6 +17,7 @@ from amsterdam_rent_scraper.config.settings import (
 from amsterdam_rent_scraper.export.excel import export_to_excel
 from amsterdam_rent_scraper.export.html_report import export_to_html
 from amsterdam_rent_scraper.llm.extractor import OllamaExtractor
+from amsterdam_rent_scraper.llm.regex_fallback import regex_extract_from_html
 from amsterdam_rent_scraper.models.listing import RentalListing
 from amsterdam_rent_scraper.utils.geo import enrich_listing_with_geo
 
@@ -88,7 +89,7 @@ def run_pipeline(
 
     console.print(f"\n[bold]Total raw listings: {len(all_listings)}[/]")
 
-    # LLM enrichment
+    # LLM enrichment (or regex fallback)
     if not skip_llm:
         console.print("\n[bold cyan]Running LLM extraction...[/]")
         extractor = OllamaExtractor()
@@ -102,8 +103,30 @@ def run_pipeline(
             console.print(
                 "[yellow]Skipping LLM extraction (Ollama not available)[/]"
             )
+            # Use regex fallback instead
+            console.print("[cyan]Using regex fallback extraction...[/]")
+            for listing in tqdm(all_listings, desc="Regex extraction"):
+                raw_path = listing.get("raw_page_path")
+                if raw_path:
+                    try:
+                        with open(raw_path, "r", encoding="utf-8") as f:
+                            html = f.read()
+                        listing.update(regex_extract_from_html(html, listing))
+                    except Exception:
+                        pass
     else:
         console.print("[dim]Skipping LLM extraction (--skip-llm)[/]")
+        # Still apply regex fallback for basic field extraction
+        console.print("[cyan]Using regex fallback extraction...[/]")
+        for listing in tqdm(all_listings, desc="Regex extraction"):
+            raw_path = listing.get("raw_page_path")
+            if raw_path:
+                try:
+                    with open(raw_path, "r", encoding="utf-8") as f:
+                        html = f.read()
+                    listing.update(regex_extract_from_html(html, listing))
+                except Exception:
+                    pass
 
     # Geographic enrichment
     console.print("\n[bold cyan]Adding geographic data...[/]")

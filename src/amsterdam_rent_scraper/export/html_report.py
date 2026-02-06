@@ -49,8 +49,13 @@ HTML_TEMPLATE = """
         .view-toggle button { background: #ecf0f1; color: #2c3e50; }
         .view-toggle button.active { background: #3498db; color: white; }
 
-        #map { height: 500px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        #map { height: 500px; border-radius: 8px; margin-bottom: 20px; display: none; position: relative; }
         #map.visible { display: block; }
+        .map-legend { position: absolute; bottom: 20px; left: 10px; background: white; padding: 10px 15px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 1000; font-size: 0.8rem; }
+        .map-legend h4 { margin: 0 0 8px 0; font-size: 0.85rem; }
+        .legend-item { display: flex; align-items: center; margin: 4px 0; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .legend-circle { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; border: 1px dashed; background: transparent; }
 
         .stats { background: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 30px; }
         .stat { text-align: center; }
@@ -64,7 +69,10 @@ HTML_TEMPLATE = """
         th.sorted-desc::after { content: ' ▼'; }
         td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 0.85rem; vertical-align: top; }
         tr:hover { background: #f8f9fa; }
-        .price { font-weight: bold; color: #27ae60; }
+        .price { font-weight: bold; }
+        .price-low { color: #27ae60; }
+        .price-mid { color: #f39c12; }
+        .price-high { color: #e74c3c; }
         .url-link { color: #3498db; text-decoration: none; word-break: break-all; }
         .url-link:hover { text-decoration: underline; }
         .summary { max-width: 300px; }
@@ -150,7 +158,18 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <div id="map"></div>
+        <div id="map">
+            <div class="map-legend">
+                <h4>Price Range</h4>
+                <div class="legend-item"><span class="legend-dot" style="background:#27ae60;"></span> &lt; EUR 1300</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#f39c12;"></span> EUR 1300-1700</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#e74c3c;"></span> &gt; EUR 1700</div>
+                <h4 style="margin-top:10px;">Distance</h4>
+                <div class="legend-item"><span class="legend-circle" style="border-color:#3498db;"></span> 5 km</div>
+                <div class="legend-item"><span class="legend-circle" style="border-color:#9b59b6;"></span> 10 km</div>
+                <div class="legend-item"><span class="legend-circle" style="border-color:#95a5a6;"></span> 15 km</div>
+            </div>
+        </div>
 
         <table id="listingsTable">
             <thead>
@@ -186,14 +205,59 @@ HTML_TEMPLATE = """
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
+            // Commute distance circles (km to meters)
+            L.circle(workLocation, {
+                radius: 5000, // 5 km
+                color: '#3498db',
+                fillColor: '#3498db',
+                fillOpacity: 0.05,
+                weight: 1,
+                dashArray: '5, 5'
+            }).addTo(map).bindPopup('5 km from work');
+
+            L.circle(workLocation, {
+                radius: 10000, // 10 km
+                color: '#9b59b6',
+                fillColor: '#9b59b6',
+                fillOpacity: 0.03,
+                weight: 1,
+                dashArray: '5, 5'
+            }).addTo(map).bindPopup('10 km from work');
+
+            L.circle(workLocation, {
+                radius: 15000, // 15 km
+                color: '#95a5a6',
+                fillColor: '#95a5a6',
+                fillOpacity: 0.02,
+                weight: 1,
+                dashArray: '5, 5'
+            }).addTo(map).bindPopup('15 km from work');
+
             // Work location marker
             L.marker(workLocation, {
                 icon: L.divIcon({
                     className: 'work-marker',
-                    html: '<div style="background:#e74c3c;color:white;padding:5px 10px;border-radius:4px;font-weight:bold;">Work</div>',
+                    html: '<div style="background:#2c3e50;color:white;padding:5px 10px;border-radius:4px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.3);">Office</div>',
                     iconSize: [50, 30]
                 })
             }).addTo(map).bindPopup('<b>Work Location</b><br>{{ work_address }}');
+        }
+
+        function getPriceColor(price) {
+            if (!price) return '#95a5a6'; // gray for unknown
+            if (price < 1300) return '#27ae60'; // green: affordable
+            if (price < 1700) return '#f39c12'; // orange: mid-range
+            return '#e74c3c'; // red: expensive
+        }
+
+        function createPriceMarker(price) {
+            const color = getPriceColor(price);
+            return L.divIcon({
+                className: 'price-marker',
+                html: `<div style="background:${color};color:white;padding:3px 6px;border-radius:50%;width:12px;height:12px;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
         }
 
         function updateMap(filteredListings) {
@@ -202,10 +266,12 @@ HTML_TEMPLATE = """
 
             filteredListings.forEach(listing => {
                 if (listing.latitude && listing.longitude) {
-                    const marker = L.marker([listing.latitude, listing.longitude])
+                    const marker = L.marker([listing.latitude, listing.longitude], {
+                        icon: createPriceMarker(listing.price_eur)
+                    })
                         .bindPopup(`
                             <b>${listing.title || listing.address || 'Listing'}</b><br>
-                            <b>EUR ${listing.price_eur || '?'}/month</b><br>
+                            <b style="color:${getPriceColor(listing.price_eur)}">EUR ${listing.price_eur || '?'}/month</b><br>
                             ${listing.surface_m2 ? listing.surface_m2 + ' m2' : ''} | ${listing.rooms || '?'} rooms<br>
                             <a href="${listing.listing_url}" target="_blank">View listing</a>
                         `);
@@ -230,9 +296,10 @@ HTML_TEMPLATE = """
 
             data.forEach(listing => {
                 const row = document.createElement('tr');
+                const priceClass = listing.price_eur ? (listing.price_eur < 1300 ? 'price-low' : listing.price_eur < 1700 ? 'price-mid' : 'price-high') : '';
                 row.innerHTML = `
                     <td>${listing.source_site || '-'}</td>
-                    <td class="price">EUR ${listing.price_eur || '?'}</td>
+                    <td class="price ${priceClass}">EUR ${listing.price_eur || '?'}</td>
                     <td>${listing.address || listing.title || '-'}</td>
                     <td>${listing.surface_m2 ? listing.surface_m2 + ' m2' : '-'}</td>
                     <td>${listing.rooms || '-'}</td>
