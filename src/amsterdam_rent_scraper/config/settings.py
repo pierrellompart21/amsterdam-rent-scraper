@@ -176,6 +176,17 @@ RENTAL_SITES: list[RentalSite] = [
         needs_js=True,
         notes="Expat-focused housing agency. Webflow site with permissive robots.txt.",
     ),
+    RentalSite(
+        name="huure",
+        base_url="https://huure.nl",
+        search_url_template=(
+            "https://huure.nl/apartments-for-rent/amsterdam"
+            "?min_rent={min_price}&max_rent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.huure.HuureScraper",
+        needs_js=False,
+        notes="Dutch rental aggregator with server-rendered content. Permissive robots.txt.",
+    ),
 ]
 
 
