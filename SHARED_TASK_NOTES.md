@@ -16,15 +16,15 @@
   - `directwonen` - requires login/subscription to see prices and details
 
 ## Recent Changes (this iteration)
-- **SQLite Database**: Persistent storage with deduplication
-  - New module: `storage/database.py` with `ListingDatabase` class
-  - Schema covers all listing fields, indexes on URL/source/price
-  - Deduplication by URL: re-scraping updates `last_seen_at`, doesn't create duplicates
-  - Pipeline auto-saves to `output/listings.db` after geocoding
-  - New CLI commands:
-    - `rent-scraper export --format excel/html` - re-export from DB without scraping
-    - `rent-scraper db-info` - show database statistics
-  - Filters work on export: `--min-price`, `--max-price`, `--source`, `--min-surface`, `--min-rooms`, `--min-score`
+- **HTML Report Improvements**:
+  - New **Cards View** as default view with modern grid layout
+  - Cards show price, specs (m², rooms, beds), commute info, neighborhood score
+  - **Price Range Slider** - dual-handle slider for min/max price filtering
+  - Three view modes: Cards (default), Table, Map
+  - Modern CSS with CSS variables, gradients, shadows, smooth transitions
+  - Better typography and spacing throughout
+  - Responsive design for mobile devices
+  - Improved tag styling for furnished/upholstered/unfurnished
 
 ## CLI Options
 ```bash
@@ -50,9 +50,8 @@ rent-scraper db-info
 ```
 
 ## Next Priority Tasks
-1. **HTML report improvements** - Cards layout, price range slider, colored markers, modern CSS
-2. **More rental sites** - Search for vesteda.com, holland2stay.com, iamexpat.nl/housing
-3. **README.md** - Setup instructions, usage examples, architecture
+1. **More rental sites** - Search for vesteda.com, holland2stay.com, iamexpat.nl/housing
+2. **README.md** - Setup instructions, usage examples, architecture
 
 ## Key Files
 - `src/amsterdam_rent_scraper/cli/main.py` - CLI with scrape, export, db-info commands
@@ -61,7 +60,7 @@ rent-scraper db-info
 - `src/amsterdam_rent_scraper/utils/geo.py` - OSRM routing, geocoding, commute calculations
 - `src/amsterdam_rent_scraper/utils/neighborhoods.py` - Neighborhood scores and detection
 - `src/amsterdam_rent_scraper/models/listing.py` - RentalListing with commute and neighborhood fields
-- `src/amsterdam_rent_scraper/export/html_report.py` - Interactive HTML with route display and neighborhood info
+- `src/amsterdam_rent_scraper/export/html_report.py` - Interactive HTML with cards/table/map views, price slider
 - `src/amsterdam_rent_scraper/export/excel.py` - Excel export with neighborhood columns
 
 ## Technical Notes

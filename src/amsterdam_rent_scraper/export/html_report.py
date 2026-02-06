@@ -27,78 +27,147 @@ HTML_TEMPLATE = """
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
-        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
-        header { background: #2c3e50; color: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
-        header h1 { font-size: 1.8rem; margin-bottom: 5px; }
-        header p { opacity: 0.8; }
+        :root {
+            --color-primary: #3498db;
+            --color-primary-dark: #2980b9;
+            --color-secondary: #2c3e50;
+            --color-secondary-dark: #1a252f;
+            --color-success: #27ae60;
+            --color-warning: #f39c12;
+            --color-danger: #e74c3c;
+            --color-gray-100: #f8f9fa;
+            --color-gray-200: #ecf0f1;
+            --color-gray-300: #ddd;
+            --color-gray-500: #95a5a6;
+            --color-gray-600: #666;
+            --color-gray-700: #34495e;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+        }
 
-        .filters { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .filter-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: end; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); min-height: 100vh; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%); color: white; padding: 24px 28px; margin-bottom: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+        header h1 { font-size: 1.8rem; margin-bottom: 8px; font-weight: 700; }
+        header p { opacity: 0.85; font-size: 0.95rem; }
+
+        .filters { background: white; padding: 20px 24px; border-radius: var(--radius-lg); margin-bottom: 20px; box-shadow: var(--shadow-md); }
+        .filter-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; }
         .filter-group { display: flex; flex-direction: column; }
-        .filter-group label { font-size: 0.8rem; color: #666; margin-bottom: 4px; }
-        .filter-group input, .filter-group select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
-        .filter-group input[type="number"] { width: 100px; }
-        button { padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
-        button:hover { background: #2980b9; }
-        .btn-reset { background: #95a5a6; }
+        .filter-group label { font-size: 0.75rem; color: var(--color-gray-600); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-group input, .filter-group select { padding: 10px 14px; border: 2px solid var(--color-gray-200); border-radius: var(--radius-sm); font-size: 0.9rem; transition: border-color 0.2s, box-shadow 0.2s; }
+        .filter-group input:focus, .filter-group select:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15); }
+        .filter-group input[type="number"] { width: 110px; }
+
+        /* Price range slider styles */
+        .price-slider-group { min-width: 280px; }
+        .price-slider-container { position: relative; height: 40px; }
+        .price-slider-track { position: absolute; top: 50%; left: 0; right: 0; height: 6px; background: var(--color-gray-200); border-radius: 3px; transform: translateY(-50%); }
+        .price-slider-range { position: absolute; top: 50%; height: 6px; background: linear-gradient(90deg, var(--color-success) 0%, var(--color-warning) 50%, var(--color-danger) 100%); border-radius: 3px; transform: translateY(-50%); }
+        .price-slider-container input[type="range"] { position: absolute; top: 50%; transform: translateY(-50%); width: 100%; height: 6px; -webkit-appearance: none; background: transparent; pointer-events: none; }
+        .price-slider-container input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: white; border: 3px solid var(--color-primary); border-radius: 50%; cursor: pointer; pointer-events: auto; box-shadow: var(--shadow-sm); transition: transform 0.15s; }
+        .price-slider-container input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+        .price-slider-container input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: white; border: 3px solid var(--color-primary); border-radius: 50%; cursor: pointer; pointer-events: auto; box-shadow: var(--shadow-sm); }
+        .price-slider-values { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: var(--color-secondary); }
+
+        button { padding: 10px 20px; background: var(--color-primary); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: background 0.2s, transform 0.15s; }
+        button:hover { background: var(--color-primary-dark); transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+        .btn-reset { background: var(--color-gray-500); }
         .btn-reset:hover { background: #7f8c8d; }
 
-        .view-toggle { display: flex; gap: 10px; margin-bottom: 20px; }
-        .view-toggle button { background: #ecf0f1; color: #2c3e50; }
-        .view-toggle button.active { background: #3498db; color: white; }
+        .view-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+        .view-toggle button { background: var(--color-gray-200); color: var(--color-secondary); padding: 10px 18px; }
+        .view-toggle button.active { background: var(--color-primary); color: white; }
 
-        #map { height: 600px; border-radius: 8px; margin-bottom: 20px; display: none; position: relative; }
+        #map { height: 600px; border-radius: var(--radius-lg); margin-bottom: 20px; display: none; position: relative; box-shadow: var(--shadow-md); }
         #map.visible { display: block; }
-        .map-legend { position: absolute; bottom: 20px; left: 10px; background: white; padding: 10px 15px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 1000; font-size: 0.8rem; }
-        .map-legend h4 { margin: 0 0 8px 0; font-size: 0.85rem; }
+        .map-legend { position: absolute; bottom: 20px; left: 10px; background: white; padding: 12px 16px; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 1000; font-size: 0.8rem; }
+        .map-legend h4 { margin: 0 0 8px 0; font-size: 0.85rem; font-weight: 700; color: var(--color-secondary); }
         .legend-item { display: flex; align-items: center; margin: 4px 0; }
         .legend-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         .legend-circle { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; border: 1px dashed; background: transparent; }
 
-        .stats { background: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 30px; }
+        .stats { background: white; padding: 18px 24px; border-radius: var(--radius-lg); margin-bottom: 20px; display: flex; gap: 40px; box-shadow: var(--shadow-md); }
         .stat { text-align: center; }
-        .stat-value { font-size: 1.5rem; font-weight: bold; color: #2c3e50; }
-        .stat-label { font-size: 0.8rem; color: #666; }
+        .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--color-secondary); }
+        .stat-label { font-size: 0.75rem; color: var(--color-gray-600); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 
-        table { width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        th { background: #34495e; color: white; padding: 12px 8px; text-align: left; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
-        th:hover { background: #2c3e50; }
+        /* Cards View */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; display: none; }
+        .cards-grid.visible { display: grid; }
+        .listing-card { background: white; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md); transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; }
+        .listing-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+        .card-header { padding: 16px 20px; background: linear-gradient(135deg, var(--color-gray-100) 0%, white 100%); border-bottom: 1px solid var(--color-gray-200); }
+        .card-price { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+        .card-price.price-low { color: var(--color-success); }
+        .card-price.price-mid { color: var(--color-warning); }
+        .card-price.price-high { color: var(--color-danger); }
+        .card-address { font-size: 0.9rem; color: var(--color-gray-600); line-height: 1.4; }
+        .card-body { padding: 16px 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+        .card-specs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .card-spec { text-align: center; padding: 10px 8px; background: var(--color-gray-100); border-radius: var(--radius-sm); }
+        .card-spec-value { font-size: 1.1rem; font-weight: 700; color: var(--color-secondary); }
+        .card-spec-label { font-size: 0.7rem; color: var(--color-gray-600); text-transform: uppercase; margin-top: 2px; }
+        .card-commute { display: flex; gap: 16px; padding: 12px 14px; background: var(--color-gray-100); border-radius: var(--radius-sm); }
+        .card-commute-item { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--color-gray-600); }
+        .card-commute-item span { font-weight: 600; color: var(--color-secondary); }
+        .card-neighborhood { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--color-gray-100); border-radius: var(--radius-sm); }
+        .card-neighborhood-score { font-size: 1.1rem; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-sm); }
+        .card-neighborhood-name { font-size: 0.85rem; color: var(--color-gray-600); }
+        .card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .card-summary { font-size: 0.85rem; color: var(--color-gray-600); line-height: 1.5; flex: 1; }
+        .card-footer { padding: 14px 20px; border-top: 1px solid var(--color-gray-200); display: flex; justify-content: space-between; align-items: center; background: var(--color-gray-100); }
+        .card-source { font-size: 0.75rem; color: var(--color-gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--color-primary); color: white; text-decoration: none; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; transition: background 0.2s; }
+        .card-link:hover { background: var(--color-primary-dark); }
+
+        /* Table View */
+        table { width: 100%; background: white; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md); display: none; }
+        table.visible { display: table; }
+        th { background: var(--color-gray-700); color: white; padding: 14px 10px; text-align: left; font-size: 0.8rem; cursor: pointer; white-space: nowrap; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        th:hover { background: var(--color-secondary); }
         th.sorted-asc::after { content: ' ▲'; }
         th.sorted-desc::after { content: ' ▼'; }
-        td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 0.85rem; vertical-align: top; }
-        tr:hover { background: #f8f9fa; }
-        .price { font-weight: bold; }
-        .price-low { color: #27ae60; }
-        .price-mid { color: #f39c12; }
-        .price-high { color: #e74c3c; }
-        .url-link { color: #3498db; text-decoration: none; word-break: break-all; }
+        td { padding: 12px 10px; border-bottom: 1px solid var(--color-gray-200); font-size: 0.85rem; vertical-align: top; }
+        tr:hover { background: var(--color-gray-100); }
+        .price { font-weight: 700; }
+        .price-low { color: var(--color-success); }
+        .price-mid { color: var(--color-warning); }
+        .price-high { color: var(--color-danger); }
+        .url-link { color: var(--color-primary); text-decoration: none; font-weight: 600; }
         .url-link:hover { text-decoration: underline; }
         .summary { max-width: 300px; }
-        .pros { color: #27ae60; }
-        .cons { color: #e74c3c; }
-        .tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; margin-right: 4px; }
-        .tag-furnished { background: #d5f5e3; color: #27ae60; }
+        .tag { display: inline-block; padding: 3px 8px; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+        .tag-furnished { background: #d5f5e3; color: var(--color-success); }
         .tag-unfurnished { background: #fdebd0; color: #e67e22; }
+        .tag-upholstered { background: #e8daef; color: #8e44ad; }
 
-        .neighborhood-score { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
-        .score-high { background: #d5f5e3; color: #27ae60; }
+        .neighborhood-score { display: inline-block; padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 700; }
+        .score-high { background: #d5f5e3; color: var(--color-success); }
         .score-mid { background: #fef9e7; color: #d68910; }
         .score-low { background: #fadbd8; color: #c0392b; }
-        .neighborhood-name { font-size: 0.75rem; color: #666; display: block; margin-top: 2px; }
+        .neighborhood-name { font-size: 0.75rem; color: var(--color-gray-600); display: block; margin-top: 3px; }
         .neighborhood-tooltip { position: relative; cursor: help; }
-        .neighborhood-tooltip .tooltip-content { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 10px; border-radius: 6px; font-size: 0.75rem; white-space: nowrap; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .neighborhood-tooltip .tooltip-content { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--color-secondary); color: white; padding: 12px 14px; border-radius: var(--radius-md); font-size: 0.75rem; white-space: nowrap; z-index: 100; box-shadow: var(--shadow-lg); }
         .neighborhood-tooltip:hover .tooltip-content { display: block; }
-        .tooltip-row { display: flex; justify-content: space-between; gap: 15px; margin: 3px 0; }
+        .tooltip-row { display: flex; justify-content: space-between; gap: 15px; margin: 4px 0; }
         .tooltip-label { opacity: 0.8; }
-        .tooltip-value { font-weight: bold; }
+        .tooltip-value { font-weight: 700; }
 
-        .no-results { text-align: center; padding: 40px; color: #666; }
+        .no-results { text-align: center; padding: 60px 40px; color: var(--color-gray-600); background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); }
+        .no-results h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--color-secondary); }
 
         @media (max-width: 768px) {
             .filter-row { flex-direction: column; }
-            .stats { flex-wrap: wrap; }
+            .stats { flex-wrap: wrap; gap: 20px; }
+            .cards-grid { grid-template-columns: 1fr; }
+            .price-slider-group { min-width: 100%; }
         }
     </style>
 </head>
@@ -111,13 +180,18 @@ HTML_TEMPLATE = """
 
         <div class="filters">
             <div class="filter-row">
-                <div class="filter-group">
-                    <label>Min Price (EUR)</label>
-                    <input type="number" id="minPrice" placeholder="1000" value="1000">
-                </div>
-                <div class="filter-group">
-                    <label>Max Price (EUR)</label>
-                    <input type="number" id="maxPrice" placeholder="2000" value="2000">
+                <div class="filter-group price-slider-group">
+                    <label>Price Range (EUR)</label>
+                    <div class="price-slider-container">
+                        <div class="price-slider-track"></div>
+                        <div class="price-slider-range" id="priceSliderRange"></div>
+                        <input type="range" id="priceSliderMin" min="500" max="3500" value="1000" step="50">
+                        <input type="range" id="priceSliderMax" min="500" max="3500" value="2000" step="50">
+                    </div>
+                    <div class="price-slider-values">
+                        <span id="priceMinDisplay">EUR 1000</span>
+                        <span id="priceMaxDisplay">EUR 2000</span>
+                    </div>
                 </div>
                 <div class="filter-group">
                     <label>Min Rooms</label>
@@ -159,8 +233,9 @@ HTML_TEMPLATE = """
         </div>
 
         <div class="view-toggle">
-            <button id="btnTable" class="active" onclick="showView('table')">Table View</button>
-            <button id="btnMap" onclick="showView('map')">Map View</button>
+            <button id="btnCards" class="active" onclick="showView('cards')">Cards</button>
+            <button id="btnTable" onclick="showView('table')">Table</button>
+            <button id="btnMap" onclick="showView('map')">Map</button>
         </div>
 
         <div class="stats">
@@ -191,6 +266,8 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <div class="cards-grid visible" id="cardsGrid"></div>
+
         <table id="listingsTable">
             <thead>
                 <tr>
@@ -212,7 +289,10 @@ HTML_TEMPLATE = """
             <tbody id="tableBody">
             </tbody>
         </table>
-        <div class="no-results" id="noResults" style="display:none;">No listings match your filters.</div>
+        <div class="no-results" id="noResults" style="display:none;">
+            <h3>No listings found</h3>
+            <p>Try adjusting your filters to see more results.</p>
+        </div>
     </div>
 
     <script>
@@ -220,8 +300,50 @@ HTML_TEMPLATE = """
         const workLocation = [{{ work_lat }}, {{ work_lng }}];
         let map = null;
         let markers = [];
-        let currentRoute = null;  // Store current route polyline
+        let currentRoute = null;
         let currentSort = { column: 'price_eur', direction: 'asc' };
+        let currentView = 'cards';
+
+        // Price slider setup
+        const priceSliderMin = document.getElementById('priceSliderMin');
+        const priceSliderMax = document.getElementById('priceSliderMax');
+        const priceSliderRange = document.getElementById('priceSliderRange');
+        const priceMinDisplay = document.getElementById('priceMinDisplay');
+        const priceMaxDisplay = document.getElementById('priceMaxDisplay');
+
+        function updatePriceSlider() {
+            const min = parseInt(priceSliderMin.value);
+            const max = parseInt(priceSliderMax.value);
+            const sliderMin = parseInt(priceSliderMin.min);
+            const sliderMax = parseInt(priceSliderMin.max);
+            const range = sliderMax - sliderMin;
+
+            // Prevent crossing
+            if (min > max - 100) {
+                if (this === priceSliderMin) {
+                    priceSliderMin.value = max - 100;
+                } else {
+                    priceSliderMax.value = min + 100;
+                }
+            }
+
+            const minVal = parseInt(priceSliderMin.value);
+            const maxVal = parseInt(priceSliderMax.value);
+            const leftPercent = ((minVal - sliderMin) / range) * 100;
+            const rightPercent = ((maxVal - sliderMin) / range) * 100;
+
+            priceSliderRange.style.left = leftPercent + '%';
+            priceSliderRange.style.width = (rightPercent - leftPercent) + '%';
+
+            priceMinDisplay.textContent = 'EUR ' + minVal;
+            priceMaxDisplay.textContent = 'EUR ' + maxVal;
+        }
+
+        priceSliderMin.addEventListener('input', updatePriceSlider);
+        priceSliderMax.addEventListener('input', updatePriceSlider);
+        priceSliderMin.addEventListener('change', applyFilters);
+        priceSliderMax.addEventListener('change', applyFilters);
+        updatePriceSlider();
 
         function initMap() {
             map = L.map('map').setView(workLocation, 12);
@@ -229,35 +351,10 @@ HTML_TEMPLATE = """
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            // Commute distance circles (km to meters)
-            L.circle(workLocation, {
-                radius: 5000, // 5 km
-                color: '#3498db',
-                fillColor: '#3498db',
-                fillOpacity: 0.05,
-                weight: 1,
-                dashArray: '5, 5'
-            }).addTo(map).bindPopup('5 km from work');
+            L.circle(workLocation, { radius: 5000, color: '#3498db', fillColor: '#3498db', fillOpacity: 0.05, weight: 1, dashArray: '5, 5' }).addTo(map).bindPopup('5 km from work');
+            L.circle(workLocation, { radius: 10000, color: '#9b59b6', fillColor: '#9b59b6', fillOpacity: 0.03, weight: 1, dashArray: '5, 5' }).addTo(map).bindPopup('10 km from work');
+            L.circle(workLocation, { radius: 15000, color: '#95a5a6', fillColor: '#95a5a6', fillOpacity: 0.02, weight: 1, dashArray: '5, 5' }).addTo(map).bindPopup('15 km from work');
 
-            L.circle(workLocation, {
-                radius: 10000, // 10 km
-                color: '#9b59b6',
-                fillColor: '#9b59b6',
-                fillOpacity: 0.03,
-                weight: 1,
-                dashArray: '5, 5'
-            }).addTo(map).bindPopup('10 km from work');
-
-            L.circle(workLocation, {
-                radius: 15000, // 15 km
-                color: '#95a5a6',
-                fillColor: '#95a5a6',
-                fillOpacity: 0.02,
-                weight: 1,
-                dashArray: '5, 5'
-            }).addTo(map).bindPopup('15 km from work');
-
-            // Work location marker
             L.marker(workLocation, {
                 icon: L.divIcon({
                     className: 'work-marker',
@@ -268,10 +365,24 @@ HTML_TEMPLATE = """
         }
 
         function getPriceColor(price) {
-            if (!price) return '#95a5a6'; // gray for unknown
-            if (price < 1300) return '#27ae60'; // green: affordable
-            if (price < 1700) return '#f39c12'; // orange: mid-range
-            return '#e74c3c'; // red: expensive
+            if (!price) return '#95a5a6';
+            if (price < 1300) return '#27ae60';
+            if (price < 1700) return '#f39c12';
+            return '#e74c3c';
+        }
+
+        function getPriceClass(price) {
+            if (!price) return '';
+            if (price < 1300) return 'price-low';
+            if (price < 1700) return 'price-mid';
+            return 'price-high';
+        }
+
+        function getScoreClass(score) {
+            if (!score) return '';
+            if (score >= 7.5) return 'score-high';
+            if (score >= 6) return 'score-mid';
+            return 'score-low';
         }
 
         function createPriceMarker(price) {
@@ -293,18 +404,9 @@ HTML_TEMPLATE = """
 
         function showRoute(listing) {
             clearRoute();
-            if (!listing.bike_route_coords || listing.bike_route_coords.length === 0) {
-                return;
-            }
-            // OSRM returns [lon, lat], Leaflet needs [lat, lon]
+            if (!listing.bike_route_coords || listing.bike_route_coords.length === 0) return;
             const latLngs = listing.bike_route_coords.map(coord => [coord[1], coord[0]]);
-            currentRoute = L.polyline(latLngs, {
-                color: '#3498db',
-                weight: 4,
-                opacity: 0.8,
-                dashArray: '10, 5'
-            }).addTo(map);
-            // Fit map to show route
+            currentRoute = L.polyline(latLngs, { color: '#3498db', weight: 4, opacity: 0.8, dashArray: '10, 5' }).addTo(map);
             map.fitBounds(currentRoute.getBounds().pad(0.1));
         }
 
@@ -319,9 +421,7 @@ HTML_TEMPLATE = """
                     const carInfo = listing.commute_time_driving_min ? `🚗 ${listing.commute_time_driving_min} min` : '';
                     const commuteInfo = [bikeInfo, carInfo].filter(x => x).join(' | ');
                     const hasRoute = listing.bike_route_coords && listing.bike_route_coords.length > 0;
-
-                    const neighborhoodInfo = listing.neighborhood_name ?
-                        `<span style="color:#666;">📍 ${listing.neighborhood_name} (${listing.neighborhood_overall}/10)</span><br>` : '';
+                    const neighborhoodInfo = listing.neighborhood_name ? `<span style="color:#666;">📍 ${listing.neighborhood_name} (${listing.neighborhood_overall}/10)</span><br>` : '';
 
                     const popupContent = `
                         <div style="min-width:200px;">
@@ -330,17 +430,100 @@ HTML_TEMPLATE = """
                             ${listing.surface_m2 ? listing.surface_m2 + ' m²' : ''} | ${listing.rooms || '?'} rooms<br>
                             ${neighborhoodInfo}
                             ${commuteInfo ? `<span style="color:#666;">${commuteInfo}</span><br>` : ''}
-                            ${hasRoute ? `<button onclick="showRoute(listings.find(l => l.listing_url === '${listing.listing_url}'))" style="margin-top:5px;padding:3px 8px;background:#3498db;color:white;border:none;border-radius:3px;cursor:pointer;">Show bike route</button><br>` : ''}
-                            <a href="${listing.listing_url}" target="_blank" style="color:#3498db;">View listing →</a>
+                            ${hasRoute ? `<button onclick="showRoute(listings.find(l => l.listing_url === '${listing.listing_url.replace(/'/g, "\\'")}'))" style="margin-top:5px;padding:3px 8px;background:#3498db;color:white;border:none;border-radius:3px;cursor:pointer;">Show bike route</button><br>` : ''}
+                            <a href="${listing.listing_url}" target="_blank" style="color:#3498db;">View listing</a>
                         </div>
                     `;
 
-                    const marker = L.marker([listing.latitude, listing.longitude], {
-                        icon: createPriceMarker(listing.price_eur)
-                    }).bindPopup(popupContent);
+                    const marker = L.marker([listing.latitude, listing.longitude], { icon: createPriceMarker(listing.price_eur) }).bindPopup(popupContent);
                     marker.addTo(map);
                     markers.push(marker);
                 }
+            });
+        }
+
+        function renderCards(data) {
+            const grid = document.getElementById('cardsGrid');
+            grid.innerHTML = '';
+
+            if (data.length === 0) {
+                document.getElementById('noResults').style.display = 'block';
+                grid.classList.remove('visible');
+                return;
+            }
+
+            document.getElementById('noResults').style.display = 'none';
+            if (currentView === 'cards') grid.classList.add('visible');
+
+            data.forEach(listing => {
+                const card = document.createElement('div');
+                card.className = 'listing-card';
+
+                const priceClass = getPriceClass(listing.price_eur);
+                const scoreClass = getScoreClass(listing.neighborhood_overall);
+
+                // Build tags
+                let tagsHtml = '';
+                if (listing.furnished) {
+                    const tagClass = listing.furnished.toLowerCase() === 'furnished' ? 'tag-furnished' : listing.furnished.toLowerCase() === 'upholstered' ? 'tag-upholstered' : 'tag-unfurnished';
+                    tagsHtml += `<span class="tag ${tagClass}">${listing.furnished}</span>`;
+                }
+                if (listing.available_date) {
+                    tagsHtml += `<span class="tag" style="background:#e8f4fd;color:#2980b9;">${listing.available_date}</span>`;
+                }
+
+                // Commute section
+                let commuteHtml = '';
+                if (listing.commute_time_bike_min || listing.commute_time_driving_min || listing.distance_km) {
+                    commuteHtml = '<div class="card-commute">';
+                    if (listing.commute_time_bike_min) commuteHtml += `<div class="card-commute-item">🚴 <span>${listing.commute_time_bike_min} min</span></div>`;
+                    if (listing.commute_time_driving_min) commuteHtml += `<div class="card-commute-item">🚗 <span>${listing.commute_time_driving_min} min</span></div>`;
+                    if (listing.distance_km) commuteHtml += `<div class="card-commute-item">📍 <span>${listing.distance_km.toFixed(1)} km</span></div>`;
+                    commuteHtml += '</div>';
+                }
+
+                // Neighborhood section
+                let neighborhoodHtml = '';
+                if (listing.neighborhood_overall && listing.neighborhood_name) {
+                    neighborhoodHtml = `
+                        <div class="card-neighborhood">
+                            <span class="card-neighborhood-score ${scoreClass}">${listing.neighborhood_overall}/10</span>
+                            <span class="card-neighborhood-name">${listing.neighborhood_name}</span>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-price ${priceClass}">EUR ${listing.price_eur || '?'}/mo</div>
+                        <div class="card-address">${listing.address || listing.title || 'Unknown location'}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-specs">
+                            <div class="card-spec">
+                                <div class="card-spec-value">${listing.surface_m2 || '?'}</div>
+                                <div class="card-spec-label">m²</div>
+                            </div>
+                            <div class="card-spec">
+                                <div class="card-spec-value">${listing.rooms || '?'}</div>
+                                <div class="card-spec-label">Rooms</div>
+                            </div>
+                            <div class="card-spec">
+                                <div class="card-spec-value">${listing.bedrooms || '?'}</div>
+                                <div class="card-spec-label">Beds</div>
+                            </div>
+                        </div>
+                        ${commuteHtml}
+                        ${neighborhoodHtml}
+                        ${tagsHtml ? `<div class="card-tags">${tagsHtml}</div>` : ''}
+                        ${listing.description_summary ? `<div class="card-summary">${listing.description_summary}</div>` : ''}
+                    </div>
+                    <div class="card-footer">
+                        <span class="card-source">${listing.source_site || 'Unknown'}</span>
+                        <a href="${listing.listing_url}" target="_blank" class="card-link">View Listing</a>
+                    </div>
+                `;
+                grid.appendChild(card);
             });
         }
 
@@ -350,21 +533,20 @@ HTML_TEMPLATE = """
 
             if (data.length === 0) {
                 document.getElementById('noResults').style.display = 'block';
-                document.getElementById('listingsTable').style.display = 'none';
+                document.getElementById('listingsTable').classList.remove('visible');
                 return;
             }
 
             document.getElementById('noResults').style.display = 'none';
-            document.getElementById('listingsTable').style.display = 'table';
+            if (currentView === 'table') document.getElementById('listingsTable').classList.add('visible');
 
             data.forEach(listing => {
                 const row = document.createElement('tr');
-                const priceClass = listing.price_eur ? (listing.price_eur < 1300 ? 'price-low' : listing.price_eur < 1700 ? 'price-mid' : 'price-high') : '';
+                const priceClass = getPriceClass(listing.price_eur);
 
-                // Neighborhood score display
                 let neighborhoodHtml = '-';
                 if (listing.neighborhood_overall) {
-                    const scoreClass = listing.neighborhood_overall >= 7.5 ? 'score-high' : listing.neighborhood_overall >= 6 ? 'score-mid' : 'score-low';
+                    const scoreClass = getScoreClass(listing.neighborhood_overall);
                     neighborhoodHtml = `
                         <div class="neighborhood-tooltip">
                             <span class="neighborhood-score ${scoreClass}">${listing.neighborhood_overall}</span>
@@ -381,13 +563,15 @@ HTML_TEMPLATE = """
                     `;
                 }
 
+                const tagClass = listing.furnished ? (listing.furnished.toLowerCase() === 'furnished' ? 'tag-furnished' : listing.furnished.toLowerCase() === 'upholstered' ? 'tag-upholstered' : 'tag-unfurnished') : '';
+
                 row.innerHTML = `
                     <td>${listing.source_site || '-'}</td>
                     <td class="price ${priceClass}">EUR ${listing.price_eur || '?'}</td>
                     <td>${listing.address || listing.title || '-'}</td>
-                    <td>${listing.surface_m2 ? listing.surface_m2 + ' m2' : '-'}</td>
+                    <td>${listing.surface_m2 ? listing.surface_m2 + ' m²' : '-'}</td>
                     <td>${listing.rooms || '-'}</td>
-                    <td>${listing.furnished ? `<span class="tag tag-${listing.furnished.toLowerCase()}">${listing.furnished}</span>` : '-'}</td>
+                    <td>${listing.furnished ? `<span class="tag ${tagClass}">${listing.furnished}</span>` : '-'}</td>
                     <td>${listing.available_date || '-'}</td>
                     <td>${listing.distance_km ? listing.distance_km.toFixed(1) + ' km' : '-'}</td>
                     <td>${listing.commute_time_bike_min ? listing.commute_time_bike_min + ' min' : '-'}</td>
@@ -402,19 +586,17 @@ HTML_TEMPLATE = """
 
         function updateStats(data) {
             document.getElementById('statCount').textContent = data.length;
-
             const prices = data.filter(l => l.price_eur).map(l => l.price_eur);
             const avgPrice = prices.length ? Math.round(prices.reduce((a,b) => a+b, 0) / prices.length) : '-';
             document.getElementById('statAvgPrice').textContent = avgPrice !== '-' ? 'EUR ' + avgPrice : '-';
-
             const sizes = data.filter(l => l.surface_m2).map(l => l.surface_m2);
             const avgSize = sizes.length ? Math.round(sizes.reduce((a,b) => a+b, 0) / sizes.length) : '-';
-            document.getElementById('statAvgSize').textContent = avgSize !== '-' ? avgSize + ' m2' : '-';
+            document.getElementById('statAvgSize').textContent = avgSize !== '-' ? avgSize + ' m²' : '-';
         }
 
         function getFilteredListings() {
-            const minPrice = parseInt(document.getElementById('minPrice').value) || 0;
-            const maxPrice = parseInt(document.getElementById('maxPrice').value) || 99999;
+            const minPrice = parseInt(priceSliderMin.value) || 0;
+            const maxPrice = parseInt(priceSliderMax.value) || 99999;
             const minRooms = parseInt(document.getElementById('minRooms').value) || 0;
             const maxDistance = parseFloat(document.getElementById('maxDistance').value) || 99999;
             const maxBikeTime = parseInt(document.getElementById('maxBikeTime').value) || 99999;
@@ -438,13 +620,10 @@ HTML_TEMPLATE = """
             return [...data].sort((a, b) => {
                 let aVal = a[currentSort.column];
                 let bVal = b[currentSort.column];
-
                 if (aVal === null || aVal === undefined) return 1;
                 if (bVal === null || bVal === undefined) return -1;
-
                 if (typeof aVal === 'string') aVal = aVal.toLowerCase();
                 if (typeof bVal === 'string') bVal = bVal.toLowerCase();
-
                 if (currentSort.direction === 'asc') {
                     return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
                 } else {
@@ -456,14 +635,16 @@ HTML_TEMPLATE = """
         function applyFilters() {
             const filtered = getFilteredListings();
             const sorted = sortListings(filtered);
+            renderCards(sorted);
             renderTable(sorted);
             updateStats(sorted);
             if (map) updateMap(sorted);
         }
 
         function resetFilters() {
-            document.getElementById('minPrice').value = '1000';
-            document.getElementById('maxPrice').value = '2000';
+            priceSliderMin.value = '1000';
+            priceSliderMax.value = '2000';
+            updatePriceSlider();
             document.getElementById('minRooms').value = '';
             document.getElementById('maxDistance').value = '';
             document.getElementById('maxBikeTime').value = '';
@@ -474,10 +655,14 @@ HTML_TEMPLATE = """
         }
 
         function showView(view) {
+            currentView = view;
+            document.getElementById('btnCards').classList.toggle('active', view === 'cards');
             document.getElementById('btnTable').classList.toggle('active', view === 'table');
             document.getElementById('btnMap').classList.toggle('active', view === 'map');
             document.getElementById('map').classList.toggle('visible', view === 'map');
-            document.getElementById('listingsTable').style.display = view === 'table' ? 'table' : 'none';
+            document.getElementById('cardsGrid').classList.toggle('visible', view === 'cards');
+            document.getElementById('listingsTable').classList.toggle('visible', view === 'table');
+            document.getElementById('noResults').style.display = 'none';
 
             if (view === 'map' && !map) {
                 initMap();
@@ -486,7 +671,7 @@ HTML_TEMPLATE = """
             }
         }
 
-        // Sorting
+        // Sorting (table only)
         document.querySelectorAll('th[data-sort]').forEach(th => {
             th.addEventListener('click', () => {
                 const column = th.dataset.sort;
@@ -496,10 +681,8 @@ HTML_TEMPLATE = """
                     currentSort.column = column;
                     currentSort.direction = 'asc';
                 }
-
                 document.querySelectorAll('th').forEach(t => t.classList.remove('sorted-asc', 'sorted-desc'));
                 th.classList.add(`sorted-${currentSort.direction}`);
-
                 applyFilters();
             });
         });
