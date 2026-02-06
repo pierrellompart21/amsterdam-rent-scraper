@@ -103,11 +103,20 @@ class KamernetScraper(PlaywrightBaseScraper):
             except (json.JSONDecodeError, TypeError):
                 continue
 
-        # Title
+        # Title - try multiple sources
         if "title" not in data:
             title_el = soup.select_one("h1, .room-title, .listing-title")
             if title_el:
                 data["title"] = title_el.get_text(strip=True)
+
+        # Fallback: derive title from URL
+        # URL pattern: /huren/TYPE-amsterdam/STREET/TYPE-ID
+        if "title" not in data or not data.get("title"):
+            url_match = re.search(r"/huren/(\w+)-amsterdam/([^/]+)/", url)
+            if url_match:
+                prop_type = url_match.group(1).replace("-", " ").title()
+                street = url_match.group(2).replace("-", " ").title()
+                data["title"] = f"{prop_type} - {street}, Amsterdam"
 
         # Price - Kamernet shows monthly rent
         price_patterns = ['.rent-price', '.price', '[class*="price"]', '.monthly-rent']
@@ -134,6 +143,13 @@ class KamernetScraper(PlaywrightBaseScraper):
             if el:
                 data["address"] = el.get_text(strip=True)
                 break
+
+        # Fallback: derive address from URL
+        if "address" not in data or not data.get("address"):
+            url_match = re.search(r"/huren/\w+-amsterdam/([^/]+)/", url)
+            if url_match:
+                street = url_match.group(1).replace("-", " ").title()
+                data["address"] = f"{street}, Amsterdam"
 
         # Get text for regex extraction
         full_text = soup.get_text()
