@@ -1,68 +1,68 @@
 # Amsterdam Rent Scraper - Task Notes
 
 ## Current State
-- Core infrastructure complete: project structure, CLI, pipeline, export modules
-- **Working scrapers** (tested with LLM extraction):
-  - `pararius` - HTML-based, works well
-  - `huurwoningen` - uses JSON-LD structured data
-  - `123wonen` - uses JSON-LD + HTML fallback
-  - `directwonen` - Playwright-based, JS-heavy site
-  - `huurstunt` - Playwright-based, JS-heavy site
-  - `kamernet` - Playwright-based, uses Dutch URLs (/huren/)
+- Core infrastructure complete: CLI, pipeline, export modules
+- **Working scrapers** (all tested with regex fallback extraction):
+  - `pararius` - HTML-based, reliable price/size/rooms extraction
+  - `huurwoningen` - JSON-LD structured data
+  - `123wonen` - JSON-LD + HTML fallback
+  - `directwonen` - Playwright-based (some timeouts, ~7/19 with area/rooms)
+  - `huurstunt` - Playwright-based
+  - `kamernet` - Playwright-based, Dutch URLs (includes rooms, not just apartments)
 - **Disabled scrapers** (anti-bot or not working):
   - `funda` - aggressive anti-bot blocks headless browsers
   - `housinganywhere` - blocks headless browsers
   - `rentslam` - not loading individual listings
   - `roofz` - site timing out/not responding
-- **LLM extraction**: Tested with Ollama llama3.2 - works well, extracts price/size/rooms/address/description
-- **Geocoding**: Fixed to handle postal codes better (avoids duplicate postal in address)
-- **Regex fallback extraction**: Added in `llm/regex_fallback.py` - runs automatically
-- **HTML report**: Colored markers by price, commute distance circles, map legend, price-colored table cells
-- **Export**: Excel with styled columns, interactive HTML with Leaflet map
 
-## How to Test
+## CLI Options
 ```bash
+# Install
 pip install -e .
-
-# Install Playwright browsers (first time only)
 playwright install chromium
 
-# Test all working scrapers without LLM
-rent-scraper --test-run --sites pararius,huurwoningen,123wonen,directwonen,huurstunt,kamernet --skip-llm
+# Quick test (3 listings per site)
+rent-scraper --test-run --sites pararius --skip-llm
 
-# Test with LLM (requires: ollama pull llama3.2 && ollama serve)
-rent-scraper --test-run --sites pararius,huurwoningen,123wonen,kamernet
+# Moderate run with custom limit
+rent-scraper --max-listings 20 --sites pararius,huurwoningen,123wonen --skip-llm
 
-# View output/amsterdam_rentals.html in browser
+# Full run all working scrapers
+rent-scraper --max-listings 50 --sites pararius,huurwoningen,123wonen,directwonen,huurstunt,kamernet --skip-llm
+
+# With LLM extraction (requires: ollama pull llama3.2 && ollama serve)
+rent-scraper --max-listings 10 --sites pararius,huurwoningen
 ```
 
+## Data Quality Observations (from 101 listings test)
+1. **Pararius**: Best quality - all 20 listings have price/area/rooms
+2. **Huurwoningen**: Returns listings outside price range (aggregates from multiple sources)
+3. **123wonen**: Price filter not respected - shows listings above 2000 EUR
+4. **Directwonen**: Only ~7/19 have area/rooms extracted (needs parser improvement)
+5. **Kamernet**: Includes rooms + apartments, some prices outside range, missing titles
+
 ## Next Priority Tasks
-1. **Run full (non-test) scrape** and validate output quality
-   - Command: `rent-scraper --sites pararius,huurwoningen,123wonen,directwonen,huurstunt,kamernet`
-   - Check for data quality issues (parking spots, weekly rates, etc.)
+1. **Add data quality filters in pipeline**:
+   - Filter listings by price range after extraction (not just at search URL)
+   - Option to filter out rooms/shared housing
 
-2. **Fix broken scrapers** - investigate if stealth options can bypass anti-bot:
-   - funda: try playwright-stealth or different browser fingerprints
-   - housinganywhere: same as above
-   - roofz: check if site is actually up
+2. **Improve directwonen parser**: Area/rooms extraction failing for most listings
 
-3. **Add data quality filters**:
-   - Filter out parking spots (price < 300 or description contains "parkeerplaats")
-   - Filter out rooms/shared housing if user wants full apartments only
+3. **Fix kamernet title extraction**: Most titles coming back as None
+
+4. **Test LLM extraction**: Run with --sites pararius (no --skip-llm) to validate Ollama integration
 
 ## Key Files
-- `src/amsterdam_rent_scraper/scrapers/base.py` - base HTTP scraper class
-- `src/amsterdam_rent_scraper/scrapers/playwright_base.py` - Playwright base class for JS sites
-- `src/amsterdam_rent_scraper/llm/extractor.py` - LLM extraction (uses regex fallback automatically)
-- `src/amsterdam_rent_scraper/llm/regex_fallback.py` - Regex patterns for price, m2, rooms, etc.
-- `src/amsterdam_rent_scraper/utils/geo.py` - Geocoding and distance calculations
-- `src/amsterdam_rent_scraper/export/html_report.py` - HTML report with map
-- `src/amsterdam_rent_scraper/config/settings.py` - site configs + OLLAMA_MODEL setting
+- `src/amsterdam_rent_scraper/cli/main.py` - CLI entry point with --max-listings option
+- `src/amsterdam_rent_scraper/pipeline.py` - Orchestrates scraping, extraction, export
+- `src/amsterdam_rent_scraper/scrapers/base.py` - Base HTTP scraper class
+- `src/amsterdam_rent_scraper/scrapers/playwright_base.py` - Playwright base class
+- `src/amsterdam_rent_scraper/llm/regex_fallback.py` - Regex patterns for extraction
+- `src/amsterdam_rent_scraper/export/html_report.py` - HTML report with Leaflet map
+- `src/amsterdam_rent_scraper/config/settings.py` - Site configs, OLLAMA_MODEL setting
 
-## Notes
-- HTTP scrapers: inherit from `BaseScraper`, implement `get_listing_urls()` and `parse_listing_page()`
-- Playwright scrapers: inherit from `PlaywrightBaseScraper`, same methods but with Playwright Page object
-- Site config in settings.py: `needs_js=True` marks Playwright-required sites, `enabled=False` disables broken scrapers
-- OLLAMA_MODEL defaults to "llama3.2" in settings.py
-- Geocoding uses postal code + Amsterdam format for best results in NL
-- Some search results may include non-apartments (parking spots, storage) - consider filtering by description or minimum price
+## Technical Notes
+- `--max-listings N` overrides both test-mode (3) and full-mode (10000) defaults
+- Geocoding uses Nominatim with 1 req/sec rate limit
+- HTML report has colored markers by price range and commute distance circles
+- Regex fallback runs automatically when LLM skipped or unavailable

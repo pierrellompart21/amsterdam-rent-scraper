@@ -24,12 +24,20 @@ class PlaywrightBaseScraper(abc.ABC):
     site_name: str = "unknown"
 
     def __init__(
-        self, min_price: int = 1000, max_price: int = 2000, test_mode: bool = False
+        self,
+        min_price: int = 1000,
+        max_price: int = 2000,
+        test_mode: bool = False,
+        max_listings: int = None,
     ):
         self.min_price = min_price
         self.max_price = max_price
         self.test_mode = test_mode
-        self.max_listings = 3 if test_mode else 10000
+        # Priority: explicit max_listings > test_mode default > full mode default
+        if max_listings is not None:
+            self.max_listings = max_listings
+        else:
+            self.max_listings = 3 if test_mode else 10000
         RAW_PAGES_DIR.mkdir(parents=True, exist_ok=True)
         self._browser: Browser | None = None
         self._playwright = None
@@ -130,8 +138,8 @@ class PlaywrightBaseScraper(abc.ABC):
             urls = self.get_listing_urls(page)
             page.close()
 
-            if self.test_mode:
-                urls = urls[: self.max_listings]
+            # Always apply max_listings limit (test_mode just sets it to 3)
+            urls = urls[: self.max_listings]
             console.print(f"  Found {len(urls)} listing URLs (limit: {self.max_listings})")
 
             results = []
