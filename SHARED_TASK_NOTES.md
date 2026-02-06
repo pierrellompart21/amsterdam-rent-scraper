@@ -59,9 +59,18 @@ rent-scraper db-info
 - Excel export with all fields
 - 9 working scrapers
 
-## Next Priority Tasks
-1. **Project is feature-complete** - All major features implemented
-2. **Polish/testing** (optional) - Run a full scrape to verify everything works
+## Project Status: COMPLETE
+All major features from the priority list have been implemented and verified:
+- ✅ Commute calculation (OSRM bike/car + Transitous transit routing)
+- ✅ Neighborhood quality scores (hardcoded, auto-detected from address)
+- ✅ SQLite database with deduplication
+- ✅ Interactive HTML report (cards/table/map, filters, route display)
+- ✅ 9 working scrapers
+- ✅ README.md documentation
+
+**Optional improvements** (not required):
+- Additional scrapers (most viable sites are blocked or aggregators)
+- UI polish / additional filters
 
 ## Key Files
 - `src/amsterdam_rent_scraper/cli/main.py` - CLI commands
