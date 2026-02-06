@@ -149,6 +149,17 @@ RENTAL_SITES: list[RentalSite] = [
         scraper_class="amsterdam_rent_scraper.scrapers.wonen123.Wonen123Scraper",
         needs_js=False,
     ),
+    RentalSite(
+        name="iamexpat",
+        base_url="https://www.iamexpat.nl",
+        search_url_template=(
+            "https://www.iamexpat.nl/housing/rentals/amsterdam"
+            "?minPrice={min_price}&maxPrice={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.iamexpat.IamExpatScraper",
+        needs_js=True,
+        notes="Expat-focused housing platform. Next.js site requires Playwright.",
+    ),
 ]
 
 
