@@ -1,11 +1,11 @@
 # Multi-City Rent Scraper - Task Notes
 
-## Current State: HELSINKI MODE WORKING - 7 SCRAPERS
+## Current State: HELSINKI MODE WORKING - 8 SCRAPERS
 
-Helsinki now has 7 working scrapers. The pipeline is fully functional.
+Helsinki now has 8 working scrapers. The pipeline is fully functional.
 
 ### What Works
-- `rent-scraper scrape --city helsinki` - All 7 scrapers working
+- `rent-scraper scrape --city helsinki` - All 8 scrapers working
 - City-specific database: `output/helsinki_listings.db`
 - City-specific exports: `output/helsinki_rentals.html`, `output/helsinki_rentals.xlsx`
 - HSL transit routing calculating proper commute times to Keilasatama 5, Espoo
@@ -19,52 +19,28 @@ Helsinki now has 7 working scrapers. The pipeline is fully functional.
 4. **TA** (`ta`) - TA-Asunnot with 5,000+ apartments. WordPress site with server-rendered HTML.
 5. **Retta** (`retta`) - Retta Management (~1,000 Helsinki area listings). Next.js site with __NEXT_DATA__.
 6. **Avara** (`avara`) - Avara rental company (~7,000 apartments). Public JSON API at oma.avara.fi.
-7. **Keva** (`keva`) - **NEW** Keva pension fund apartments (~3,500 units). WordPress site with clean HTML - no JS rendering needed.
+7. **Keva** (`keva`) - Keva pension fund apartments (~3,500 units). WordPress site with clean HTML - no JS rendering needed.
+8. **OVV** (`ovv`) - **NEW** OVV Asuntopalvelut / Auroranlinna (City of Helsinki) ~6,000 apartments. WordPress AJAX with API interception - returns JSON directly from the admin-ajax.php endpoint.
 
 ### Blocked/Disabled Scrapers
 1. **Vuokraovi** (`vuokraovi`) - Blocks headless browsers completely. Disabled.
 
-## Next Steps: MORE HELSINKI SCRAPERS
+## Next Steps: MORE HELSINKI SCRAPERS (if needed)
 
-Potential sites to implement (in priority order):
-1. **A-Kruunu** (a-kruunu.fi) - Affordable rentals in Helsinki metro area. Uses external search at `a-kruunu-markkinointihaku.etampuuri.fi` which is a Knockout.js app - more complex to scrape than standard sites.
-2. **forenom.com** - Furnished/temporary rentals. Previously blocked with 403.
-3. **housinganywhere.com** - Already have scraper for Amsterdam but it's disabled (blocks headless browsers).
+Most remaining sites are complex (WordPress AJAX without exposed endpoints) or blocked:
 
-### Research Notes
+1. **M2-Kodit** (m2kodit.fi) - Part of Y-Säätiö, 11,500 ARA-subsidized apartments. WordPress with AJAX, no easy JSON endpoint.
+2. **A-Kruunu** (a-kruunu.fi) - Affordable rentals. Uses external Knockout.js search at etampuuri.fi - complex to scrape.
+3. **Forenom** (forenom.com) - Returns 403 - blocked.
+4. **Asuntosäätiö** (asuntosaatio.fi) - WordPress with AJAX/React hybrid, complex dynamic loading.
+5. **Kodisto** (kodisto.fi by Newsec) - Next.js but returned no listings in testing.
 
-**Etuovi.com:**
-- Does NOT have rental listings - only sales (myytävät asunnot)
-- Rental listings redirect to vuokraovi.com (same parent company)
-- Skip this site for rentals
-
-**Heka (City of Helsinki housing):**
-- 55,000 apartments managed by City of Helsinki
-- Now lists apartments on Oikotie.fi (which we already scrape)
-- Their own site (hekaoy.fi) is informational only, no search API
-- Skip - already covered via Oikotie
-
-**A-Kruunu (a-kruunu.fi):**
-- Main site is Drupal-based, redirects apartment search to external platform
-- Apartment search at `a-kruunu-markkinointihaku.etampuuri.fi` uses Knockout.js
-- Data loaded dynamically via AJAX, no easy JSON endpoint visible
-- Would require Playwright + careful observation of network requests
-- Lower priority due to complexity
-
-**OVV Asuntopalvelut (ovv.com):**
-- Handles Auroranlinna rentals, WordPress with AJAX
-- Apartments load dynamically via `/wp-admin/admin-ajax.php`
-- Would require intercepting AJAX or using Playwright
-- Medium priority
-
-**M2-Kodit (m2kodit.fi):**
-- Part of Y-Säätiö, 11,500 ARA-subsidized apartments
-- WordPress with Tampuuri application system
-- No easy JSON endpoint visible
-- Medium priority
-
-**Keva (vuokra-asunnot.keva.fi):**
-- DONE - working scraper added!
+### Research Summary
+- **Blok.ai** - For apartment sales only, not rentals. Skip.
+- **Etuovi.com** - Redirects to Vuokraovi for rentals (blocked). Skip.
+- **Heka** (City of Helsinki housing) - Lists on Oikotie (which we already scrape). Skip.
+- **Kojamo/VVO** - Parent company of LUMO (already have scraper). Skip.
+- **Hoas** - Student housing only. Not for general renters.
 
 ## CLI Quick Reference
 ```bash
@@ -72,11 +48,12 @@ Potential sites to implement (in priority order):
 rent-scraper scrape --city helsinki --skip-llm
 rent-scraper scrape --city helsinki --max-listings 20 --skip-llm
 
-# Just keva (fast - pure HTTP, no Playwright)
+# Fast scrapers (pure HTTP, no Playwright)
 rent-scraper scrape --city helsinki --sites keva --skip-llm
-
-# Just avara (fast - uses JSON API, no Playwright)
 rent-scraper scrape --city helsinki --sites avara --skip-llm
+
+# OVV scraper (Playwright + API interception)
+rent-scraper scrape --city helsinki --sites ovv --skip-llm
 
 # Check database
 rent-scraper db-info --city helsinki
@@ -97,6 +74,7 @@ rent-scraper scrape --city amsterdam --test-run
 - `src/amsterdam_rent_scraper/scrapers/retta.py` - Working Retta scraper
 - `src/amsterdam_rent_scraper/scrapers/avara.py` - Working Avara scraper (JSON API)
 - `src/amsterdam_rent_scraper/scrapers/keva.py` - Working Keva scraper (HTML)
+- `src/amsterdam_rent_scraper/scrapers/ovv.py` - Working OVV scraper (Playwright + API)
 - `src/amsterdam_rent_scraper/scrapers/vuokraovi.py` - Blocked, disabled
 
 ## Technical Notes
@@ -109,6 +87,13 @@ rent-scraper scrape --city amsterdam --test-run
 - **Room words**: yksiö (studio), kaksio (2 rooms), kolmio (3 rooms), neliö (4 rooms)
 - **Sauna**: Very common in Finnish apartments, often abbreviated as "+s"
 
+### OVV Scraper Notes
+- OVV site uses WordPress with AJAX for dynamic listing loading
+- The scraper intercepts the JSON response from `/wp-admin/admin-ajax.php`
+- Action: `ovv_plugin_get_realties`, returns ~10 listings per page (no pagination exposed)
+- City filter: "Helsinki" office gives best Helsinki results
+- OVV/Auroranlinna primarily has affordable smaller apartments, so many may be filtered out by min_surface=40m² and min_rooms=2
+
 ### Helsinki Office Target
 - Address: Keilasatama 5, 02150 Espoo, Finland
 - Coordinates: (60.1756, 24.8271)
@@ -116,8 +101,8 @@ rent-scraper scrape --city amsterdam --test-run
 
 ## Project Status
 - Amsterdam: COMPLETE (9 working scrapers)
-- Helsinki: IN PROGRESS (7 working scrapers - SATO, Oikotie, LUMO, TA, Retta, Avara, Keva)
+- Helsinki: IN PROGRESS (8 working scrapers - SATO, Oikotie, LUMO, TA, Retta, Avara, Keva, OVV)
 
 ### Recent Changes
-- Added Keva scraper - WordPress site with server-rendered HTML, no JS needed
-- Database now has 60 Helsinki listings across 7 scrapers
+- Added OVV scraper - intercepts WordPress AJAX API response
+- Database now has 61 Helsinki listings across 8 scrapers
