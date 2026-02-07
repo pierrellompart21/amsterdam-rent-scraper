@@ -1,13 +1,14 @@
-# Amsterdam Rent Scraper
+# Multi-City Rent Scraper
 
-A CLI tool to scrape rental listings from multiple Dutch housing websites, calculate commute times, analyze neighborhoods, and export to interactive HTML reports with maps.
+A CLI tool to scrape rental listings from housing websites in **Amsterdam** and **Helsinki**, calculate commute times, analyze neighborhoods, and export to interactive HTML reports with maps.
 
 ## Features
 
-- **Multi-site scraping** - Pararius, Huurwoningen, 123Wonen, Huurstunt, Kamernet, IamExpat, Rotsvast
-- **Commute calculation** - Real bike/driving times via OSRM routing API
+- **Multi-city support** - Amsterdam (Netherlands) and Helsinki (Finland)
+- **Multi-site scraping** - 9 Amsterdam sites + 8 Helsinki sites
+- **Commute calculation** - Real bike/driving times via OSRM, transit via HSL Digitransit (Helsinki)
 - **Neighborhood scoring** - Safety, amenities, green space, restaurants, expat-friendliness (1-10)
-- **SQLite database** - Persistent storage with deduplication
+- **SQLite database** - City-specific persistent storage with deduplication
 - **Interactive HTML report** - Cards/table views, map with route polylines, price slider
 - **Excel export** - Full data export with all fields
 - **CLI filters** - Price range, surface area, rooms, neighborhood scores
@@ -33,6 +34,8 @@ playwright install chromium
 
 ## Quick Start
 
+### Amsterdam (default)
+
 ```bash
 # Test run - 3 listings per site, skip LLM extraction
 rent-scraper scrape --test-run --sites pararius --skip-llm
@@ -50,6 +53,25 @@ rent-scraper export --format html --min-price 1200 --max-price 1800
 rent-scraper db-info
 ```
 
+### Helsinki
+
+```bash
+# Helsinki with all working scrapers
+rent-scraper scrape --city helsinki --skip-llm
+
+# Helsinki with specific scrapers
+rent-scraper scrape --city helsinki --sites sato,lumo,avara --skip-llm
+
+# Helsinki with limits
+rent-scraper scrape --city helsinki --max-listings 20 --skip-llm
+
+# Helsinki database info
+rent-scraper db-info --city helsinki
+
+# Helsinki export only
+rent-scraper export --city helsinki --format html
+```
+
 ## CLI Commands
 
 ### `rent-scraper scrape`
@@ -58,13 +80,14 @@ Scrape rental websites and save to database.
 
 | Option | Description | Default |
 |--------|-------------|---------|
+| `--city, -c` | City to scrape: amsterdam, helsinki | amsterdam |
 | `--test-run, -t` | Scrape only 3 listings per site | False |
 | `--sites, -s` | Filter sites (comma-separated) | All enabled |
 | `--max-listings, -n` | Max listings per site | Unlimited |
-| `--min-price` | Minimum rent in EUR | 1000 |
-| `--max-price` | Maximum rent in EUR | 2000 |
-| `--min-surface` | Minimum surface area in m² | None |
-| `--min-rooms` | Minimum number of rooms | None |
+| `--min-price` | Minimum rent in EUR | City default |
+| `--max-price` | Maximum rent in EUR | City default |
+| `--min-surface` | Minimum surface area in m² | City default |
+| `--min-rooms` | Minimum number of rooms | City default |
 | `--apartments-only, -a` | Filter out rooms/shared housing | False |
 | `--skip-llm` | Skip LLM extraction (regex only) | False |
 | `--output-dir, -o` | Output directory | `./output` |
@@ -125,14 +148,22 @@ src/amsterdam_rent_scraper/
 
 ### Database
 
-Listings are stored in `output/listings.db` (SQLite). The database:
+Listings are stored in city-specific SQLite databases:
+- `output/amsterdam_listings.db` - Amsterdam listings
+- `output/helsinki_listings.db` - Helsinki listings
+
+Each database:
 - Deduplicates by URL
 - Stores all listing fields including commute times and neighborhood scores
 - Supports filtered queries for export
 
 ### HTML Report
 
-Interactive report at `output/amsterdam_rentals.html`:
+Interactive reports are generated per city:
+- `output/amsterdam_rentals.html`
+- `output/helsinki_rentals.html`
+
+Features:
 - **Cards view** - Visual cards with key info and neighborhood badges
 - **Table view** - Sortable table with all fields
 - **Map view** - Leaflet map with colored markers (green=cheap, yellow=mid, red=expensive)
@@ -141,9 +172,13 @@ Interactive report at `output/amsterdam_rentals.html`:
 
 ### Excel
 
-Full data export at `output/amsterdam_rentals.xlsx` with all fields.
+Full data export per city:
+- `output/amsterdam_rentals.xlsx`
+- `output/helsinki_rentals.xlsx`
 
 ## Scraped Sites
+
+### Amsterdam Sites
 
 | Site | Status | Method | Notes |
 |------|--------|--------|-------|
@@ -158,18 +193,41 @@ Full data export at `output/amsterdam_rentals.xlsx` with all fields.
 | housinganywhere.com | Disabled | - | Blocks headless browsers |
 | directwonen.nl | Disabled | - | Requires subscription |
 
+### Helsinki Sites
+
+| Site | Status | Method | Notes |
+|------|--------|--------|-------|
+| sato.fi | Enabled | Playwright | Major Finnish rental company |
+| oikotie.fi | Enabled | Playwright | Largest Finnish housing site |
+| lumo.fi | Enabled | Playwright | Kojamo/Lumo (~39,000 apartments) |
+| ta.fi | Enabled | Playwright | TA-Asunnot (5,000+ apartments) |
+| rettamanagement.fi | Enabled | Playwright | Retta Management (~1,000 listings) |
+| avara.fi | Enabled | JSON API | Avara (~7,000 apartments) |
+| keva.fi | Enabled | HTML | Keva pension fund (~3,500 apartments) |
+| ovv.com | Enabled | Playwright | OVV/Auroranlinna (~6,000 apartments) |
+| vuokraovi.com | Disabled | - | Blocks headless browsers |
+
 ## Commute Calculation
 
 Uses [OSRM](http://project-osrm.org/) free routing API:
 - **Bike**: Cycling route with realistic times
 - **Car**: Driving route (no traffic)
-- **Transit**: Distance-based heuristic (OSRM doesn't support transit)
+- **Transit**: Distance-based heuristic for Amsterdam; HSL Digitransit API for Helsinki
 
-Default work location: Stroombaan 4, Amstelveen (configurable in `config/settings.py`)
+### City Configurations
+
+| City | Office Target | Price Range | Min Surface | Min Rooms |
+|------|--------------|-------------|-------------|-----------|
+| Amsterdam | Stroombaan 4, Amstelveen | EUR 1000-2000 | - | - |
+| Helsinki | Keilasatama 5, Espoo | EUR 800-1800 | 40 m² | 2 |
+
+Helsinki uses the [HSL Digitransit API](https://digitransit.fi/en/developers/) for accurate public transit times including metro, tram, and bus.
 
 ## Neighborhood Scores
 
-Hardcoded scores (1-10) for Amsterdam districts:
+Hardcoded scores (1-10) for districts in each city.
+
+### Amsterdam Districts (sample)
 
 | Area | Safety | Green | Amenities | Restaurants | Family | Expat |
 |------|--------|-------|-----------|-------------|--------|-------|
@@ -180,7 +238,18 @@ Hardcoded scores (1-10) for Amsterdam districts:
 | Noord | 7 | 8 | 6 | 6 | 7 | 6 |
 | Amstelveen | 9 | 9 | 7 | 6 | 9 | 9 |
 
-See `utils/neighborhoods.py` for full list.
+### Helsinki Districts (sample)
+
+| Area | Safety | Green | Amenities | Restaurants | Family | Expat |
+|------|--------|-------|-----------|-------------|--------|-------|
+| Kamppi | 7 | 4 | 10 | 10 | 5 | 9 |
+| Kallio | 7 | 5 | 9 | 9 | 6 | 9 |
+| Töölö | 9 | 7 | 8 | 8 | 7 | 8 |
+| Punavuori | 8 | 4 | 9 | 10 | 5 | 9 |
+| Lauttasaari | 9 | 7 | 7 | 6 | 8 | 7 |
+| Tapiola (Espoo) | 9 | 8 | 8 | 7 | 9 | 8 |
+
+See `utils/neighborhoods.py` for full list (26 Helsinki districts, 15+ Amsterdam areas).
 
 ## LLM Extraction (Optional)
 
@@ -198,21 +267,29 @@ Without `--skip-llm`, uses regex fallback extraction which works well for most s
 
 ## Configuration
 
-Edit `src/amsterdam_rent_scraper/config/settings.py`:
+City configurations are in `src/amsterdam_rent_scraper/config/settings.py`. The `CITIES` dict contains per-city settings:
 
 ```python
-# Work location for commute calculation
-WORK_ADDRESS = "Stroombaan 4, 1181 VX Amstelveen"
-WORK_LAT = 52.3027
-WORK_LNG = 4.8557
-
-# Default price range
-MIN_PRICE = 1000
-MAX_PRICE = 2000
-
-# Scraping delays (be nice to servers)
-REQUEST_DELAY_MIN = 2.0
-REQUEST_DELAY_MAX = 5.0
+CITIES = {
+    "amsterdam": {
+        "office_address": "Stroombaan 4, 1181 VX Amstelveen",
+        "office_lat": 52.3027,
+        "office_lon": 4.8557,
+        "min_price": 1000,
+        "max_price": 2000,
+        "scrapers": ["pararius", "huurwoningen", ...],
+    },
+    "helsinki": {
+        "office_address": "Keilasatama 5, 02150 Espoo, Finland",
+        "office_lat": 60.1756,
+        "office_lon": 24.8271,
+        "min_price": 800,
+        "max_price": 1800,
+        "min_surface": 40,
+        "min_rooms": 2,
+        "scrapers": ["sato", "oikotie", "lumo", ...],
+    },
+}
 ```
 
 ## Requirements
