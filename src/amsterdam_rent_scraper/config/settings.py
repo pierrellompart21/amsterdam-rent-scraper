@@ -65,7 +65,7 @@ CITIES: dict[str, CityConfig] = {
         map_center_lng=24.9384,
         map_default_zoom=11,
         transit_api="hsl",  # Helsinki Region Transport (HSL) Digitransit API
-        enabled_scrapers=["sato", "oikotie", "lumo"],  # Finnish rental scrapers
+        enabled_scrapers=["sato", "oikotie", "lumo", "ta"],  # Finnish rental scrapers
     ),
 }
 
@@ -311,6 +311,15 @@ RENTAL_SITES: list[RentalSite] = [
         city="helsinki",
         needs_js=True,
         notes="Kojamo/Lumo rental apartments. React/Redux site, requires JS rendering.",
+    ),
+    RentalSite(
+        name="ta",
+        base_url="https://ta.fi",
+        search_url_template="https://ta.fi/asunnot/vuokra-asunto/helsinki/",
+        scraper_class="amsterdam_rent_scraper.scrapers.ta.TAScraper",
+        city="helsinki",
+        needs_js=True,
+        notes="TA-Asunnot rental company. WordPress site with 5,000+ apartments.",
     ),
     # Additional Helsinki sites to implement:
     # - etuovi.com (Finnish housing marketplace - redirects to vuokraovi for rentals)
