@@ -1,11 +1,11 @@
 # Multi-City Rent Scraper - Task Notes
 
-## Current State: HELSINKI MODE WORKING - 5 SCRAPERS
+## Current State: HELSINKI MODE WORKING - 6 SCRAPERS
 
-Helsinki now has 5 working scrapers. The pipeline is fully functional.
+Helsinki now has 6 working scrapers. The pipeline is fully functional.
 
 ### What Works
-- `rent-scraper scrape --city helsinki` - All 5 scrapers working
+- `rent-scraper scrape --city helsinki` - All 6 scrapers working
 - City-specific database: `output/helsinki_listings.db`
 - City-specific exports: `output/helsinki_rentals.html`, `output/helsinki_rentals.xlsx`
 - HSL transit routing calculating proper commute times to Keilasatama 5, Espoo
@@ -17,7 +17,8 @@ Helsinki now has 5 working scrapers. The pipeline is fully functional.
 2. **Oikotie** (`oikotie`) - Largest Finnish housing site. AngularJS site, works with Playwright.
 3. **LUMO** (`lumo`) - Kojamo/Lumo apartments (~39,000 units across Finland). React/Redux site.
 4. **TA** (`ta`) - TA-Asunnot with 5,000+ apartments. WordPress site with server-rendered HTML.
-5. **Retta** (`retta`) - **NEW** Retta Management (~1,000 Helsinki area listings). Next.js site with all data in `__NEXT_DATA__`. Very fast scraping since no individual page fetches needed.
+5. **Retta** (`retta`) - Retta Management (~1,000 Helsinki area listings). Next.js site with __NEXT_DATA__.
+6. **Avara** (`avara`) - **NEW** Avara rental company (~7,000 apartments). Public JSON API at oma.avara.fi. ~80 listings in Helsinki metro area.
 
 ### Blocked/Disabled Scrapers
 1. **Vuokraovi** (`vuokraovi`) - Blocks headless browsers completely. Disabled.
@@ -36,6 +37,12 @@ Potential sites to implement (in priority order):
 - Rental listings redirect to vuokraovi.com (same parent company)
 - Skip this site for rentals
 
+**Heka (City of Helsinki housing):**
+- 55,000 apartments managed by City of Helsinki
+- Now lists apartments on Oikotie.fi (which we already scrape)
+- Their own site (hekaoy.fi) is informational only, no search API
+- Skip - already covered via Oikotie
+
 **A-Kruunu (a-kruunu.fi):**
 - Main site is Drupal-based, redirects apartment search to external platform
 - Apartment search at `a-kruunu-markkinointihaku.etampuuri.fi` uses Knockout.js
@@ -43,20 +50,14 @@ Potential sites to implement (in priority order):
 - Would require Playwright + careful observation of network requests
 - Lower priority due to complexity
 
-**Retta Management (vuokraus.rettamanagement.fi):**
-- Next.js site with all listings embedded in `__NEXT_DATA__` JSON
-- ~1,614 total listings, ~1,000 in Helsinki metro area
-- Very efficient - all data from single page load, no individual page fetches needed
-- Successfully implemented!
-
 ## CLI Quick Reference
 ```bash
 # Helsinki with all working scrapers
 rent-scraper scrape --city helsinki --skip-llm
 rent-scraper scrape --city helsinki --max-listings 20 --skip-llm
 
-# Just retta (fastest scraper)
-rent-scraper scrape --city helsinki --sites retta --skip-llm
+# Just avara (fastest - uses JSON API, no Playwright)
+rent-scraper scrape --city helsinki --sites avara --skip-llm
 
 # Check database
 rent-scraper db-info --city helsinki
@@ -74,7 +75,8 @@ rent-scraper scrape --city amsterdam --test-run
 - `src/amsterdam_rent_scraper/scrapers/oikotie.py` - Working Oikotie scraper
 - `src/amsterdam_rent_scraper/scrapers/lumo.py` - Working LUMO scraper
 - `src/amsterdam_rent_scraper/scrapers/ta.py` - Working TA-Asunnot scraper
-- `src/amsterdam_rent_scraper/scrapers/retta.py` - Working Retta scraper (uses cached __NEXT_DATA__)
+- `src/amsterdam_rent_scraper/scrapers/retta.py` - Working Retta scraper
+- `src/amsterdam_rent_scraper/scrapers/avara.py` - Working Avara scraper (JSON API)
 - `src/amsterdam_rent_scraper/scrapers/vuokraovi.py` - Blocked, disabled
 
 ## Technical Notes
@@ -93,7 +95,7 @@ rent-scraper scrape --city amsterdam --test-run
 
 ## Project Status
 - Amsterdam: COMPLETE (9 working scrapers)
-- Helsinki: IN PROGRESS (5 working scrapers - SATO, Oikotie, LUMO, TA, Retta)
+- Helsinki: IN PROGRESS (6 working scrapers - SATO, Oikotie, LUMO, TA, Retta, Avara)
 
 ### Recent Changes
-- Added Retta Management scraper with efficient __NEXT_DATA__ extraction (~1000 Helsinki listings)
+- Added Avara scraper with public JSON API (~80 Helsinki metro listings)
