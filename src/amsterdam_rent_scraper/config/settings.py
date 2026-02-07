@@ -65,7 +65,7 @@ CITIES: dict[str, CityConfig] = {
         map_center_lng=24.9384,
         map_default_zoom=11,
         transit_api="hsl",  # Helsinki Region Transport (HSL) Digitransit API
-        enabled_scrapers=["sato", "oikotie", "lumo", "ta", "retta"],  # Finnish rental scrapers
+        enabled_scrapers=["sato", "oikotie", "lumo", "ta", "retta", "avara"],  # Finnish rental scrapers
     ),
 }
 
@@ -329,6 +329,15 @@ RENTAL_SITES: list[RentalSite] = [
         city="helsinki",
         needs_js=True,
         notes="Retta Management rental apartments. Next.js site with JSON data in __NEXT_DATA__.",
+    ),
+    RentalSite(
+        name="avara",
+        base_url="https://www.avara.fi",
+        search_url_template="https://oma.avara.fi/api/apartments/free?locations=helsinki,espoo,vantaa",
+        scraper_class="amsterdam_rent_scraper.scrapers.avara.AvaraScraper",
+        city="helsinki",
+        needs_js=False,  # Uses JSON API
+        notes="Finnish rental company with ~7,000 apartments. Public JSON API.",
     ),
     # Additional Helsinki sites to implement:
     # - etuovi.com (Finnish housing marketplace - redirects to vuokraovi for rentals)
