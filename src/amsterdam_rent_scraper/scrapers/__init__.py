@@ -1,4 +1,4 @@
-"""Site-specific scrapers for Dutch rental websites."""
+"""Site-specific scrapers for rental websites (Netherlands and Finland)."""
 
 from amsterdam_rent_scraper.scrapers.base import BaseScraper
 

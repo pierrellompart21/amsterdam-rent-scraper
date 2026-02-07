@@ -65,7 +65,7 @@ CITIES: dict[str, CityConfig] = {
         map_center_lng=24.9384,
         map_default_zoom=11,
         transit_api="hsl",  # Helsinki Region Transport (HSL) Digitransit API
-        enabled_scrapers=["sato"],  # Finnish rental scrapers
+        enabled_scrapers=["sato", "oikotie"],  # Finnish rental scrapers
     ),
 }
 
@@ -294,8 +294,16 @@ RENTAL_SITES: list[RentalSite] = [
         needs_js=True,
         notes="Major Finnish rental company. Next.js site, works with Playwright.",
     ),
+    RentalSite(
+        name="oikotie",
+        base_url="https://asunnot.oikotie.fi",
+        search_url_template="https://asunnot.oikotie.fi/vuokra-asunnot?pagination=1",
+        scraper_class="amsterdam_rent_scraper.scrapers.oikotie.OikotieScraper",
+        city="helsinki",
+        needs_js=True,
+        notes="Largest Finnish housing site. AngularJS, requires JS rendering.",
+    ),
     # Additional Helsinki sites to implement:
-    # - oikotie.fi (largest Finnish housing site - complex JS, requires auth?)
     # - etuovi.com (Finnish housing marketplace)
     # - lumo.fi (Kojamo/Lumo rental apartments)
 ]
