@@ -1,11 +1,11 @@
 # Multi-City Rent Scraper - Task Notes
 
-## Current State: HELSINKI MODE WORKING - 2 SCRAPERS
+## Current State: HELSINKI MODE WORKING - 3 SCRAPERS
 
-Helsinki now has 2 working scrapers. The pipeline is functional for Helsinki with proper filtering.
+Helsinki now has 3 working scrapers. The pipeline is fully functional.
 
 ### What Works
-- `rent-scraper scrape --city helsinki` - Both scrapers working
+- `rent-scraper scrape --city helsinki` - All 3 scrapers working
 - City-specific database: `output/helsinki_listings.db`
 - City-specific exports: `output/helsinki_rentals.html`, `output/helsinki_rentals.xlsx`
 - HSL transit routing calculating proper commute times to Keilasatama 5, Espoo
@@ -13,29 +13,32 @@ Helsinki now has 2 working scrapers. The pipeline is functional for Helsinki wit
 - Price/surface/room filtering all working correctly
 
 ### Working Helsinki Scrapers
-1. **SATO** (`sato`) - Major Finnish rental company. Works well with Playwright. ~27 listings available.
-2. **Oikotie** (`oikotie`) - **NEW** Largest Finnish housing site. AngularJS site, works with Playwright. ~27+ listings per page.
+1. **SATO** (`sato`) - Major Finnish rental company. Next.js site, works with Playwright.
+2. **Oikotie** (`oikotie`) - Largest Finnish housing site. AngularJS site, works with Playwright.
+3. **LUMO** (`lumo`) - **NEW** Kojamo/Lumo apartments (~39,000 units across Finland). React/Redux site. Needs cookie consent handling (CybotCookiebot), pagination via "Show more" button.
 
 ### Blocked/Disabled Scrapers
 1. **Vuokraovi** (`vuokraovi`) - Blocks headless browsers completely. Returns "Enable JavaScript" even with Playwright. Disabled.
 
 ## Next Steps: MORE HELSINKI SCRAPERS
 
-Priority order for implementation:
-1. **etuovi.com** - Finnish housing marketplace (same company as vuokraovi, may have same blocks)
-2. **lumo.fi** - Kojamo/Lumo rentals. React SPA, navigation may be challenging.
+Potential sites (in priority order):
+1. **forenom.fi** - Furnished/temporary rentals. Worth investigating.
+2. **housinganywhere.com** - Already have scraper for Amsterdam. Could add Helsinki search params.
+3. **kojamo.fi** - Parent company of LUMO, may have additional listings or API.
 
 ### Research Notes
 
 **Etuovi.com:**
-- Same parent company as vuokraovi, likely same anti-bot measures
-- React/Material-UI frontend
-- Strong headless browser detection expected
+- Does NOT have rental listings - only sales (myytävät asunnot)
+- Rental listings redirect to vuokraovi.com (same parent company)
+- Skip this site for rentals
 
-**LUMO:**
-- React Redux SPA
-- Apartment cards don't have direct links - uses React Router
-- May need to interact with cards via Playwright clicks
+**LUMO Implementation Notes:**
+- Cookie consent: Uses CybotCookiebot. Must handle `#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll` selector.
+- Pagination: Uses "Näytä lisää asuntoja" (Show more apartments) button. Each click loads ~14 more listings.
+- Site shows ALL of Finland by default - filter by city in URL path: `/vuokra-asunnot/Helsinki/...`
+- Helsinki metro cities: Helsinki, Espoo, Vantaa, Kauniainen
 
 ## CLI Quick Reference
 ```bash
@@ -43,8 +46,8 @@ Priority order for implementation:
 rent-scraper scrape --city helsinki --skip-llm
 rent-scraper scrape --city helsinki --max-listings 20 --skip-llm
 
-# Just oikotie
-rent-scraper scrape --city helsinki --sites oikotie --skip-llm
+# Just lumo
+rent-scraper scrape --city helsinki --sites lumo --skip-llm
 
 # Check database
 rent-scraper db-info --city helsinki
@@ -60,18 +63,10 @@ rent-scraper scrape --city amsterdam --test-run
 - `src/amsterdam_rent_scraper/config/settings.py` - City configs, RentalSite entries
 - `src/amsterdam_rent_scraper/scrapers/sato.py` - Working SATO scraper
 - `src/amsterdam_rent_scraper/scrapers/oikotie.py` - Working Oikotie scraper
+- `src/amsterdam_rent_scraper/scrapers/lumo.py` - Working LUMO scraper
 - `src/amsterdam_rent_scraper/scrapers/vuokraovi.py` - Blocked, disabled
 
 ## Technical Notes
-
-### Oikotie Scraper Details
-- Uses AngularJS (not Angular/React)
-- Listings load dynamically, needs networkidle wait
-- Uses absolute URLs in href attributes
-- Listing URL pattern: `https://asunnot.oikotie.fi/vuokra-asunnot/{city}/{listing_id}`
-- Rental search uses `vuokra-asunnot` path (vs `myytavat-asunnot` for sales)
-- Location filter uses encoded location IDs: `[1656,4,"Helsinki"]`, `[1549,4,"Espoo"]`, `[1643,4,"Vantaa"]`
-- Price filter: `price[min]=800&price[max]=1800` (URL encoded)
 
 ### Finnish Site Considerations
 - **Language**: Sites in Finnish. Key terms: vuokra (rent), asunto (apartment), huone (room), neliö (m²)
@@ -87,4 +82,8 @@ rent-scraper scrape --city amsterdam --test-run
 
 ## Project Status
 - Amsterdam: COMPLETE (9 working scrapers)
-- Helsinki: IN PROGRESS (2 working scrapers - SATO, Oikotie)
+- Helsinki: IN PROGRESS (3 working scrapers - SATO, Oikotie, LUMO)
+
+### Recent Changes
+- Added LUMO scraper with CybotCookiebot consent handling and pagination
+- Confirmed etuovi.com only does sales (not rentals) - skip for this project
