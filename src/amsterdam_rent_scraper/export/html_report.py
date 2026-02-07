@@ -1,17 +1,19 @@
 """Generate interactive HTML report with filtering, sorting, and map view."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import folium
 from jinja2 import Template
 from rich.console import Console
 
 from amsterdam_rent_scraper.config.settings import (
+    DEFAULT_CITY,
     HTML_FILENAME,
     WORK_LAT,
     WORK_LNG,
     WORK_ADDRESS,
+    get_city_config,
 )
 from amsterdam_rent_scraper.models.listing import RentalListing
 
@@ -23,7 +25,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amsterdam Rental Listings</title>
+    <title>{{ city_name }} Rental Listings</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -174,7 +176,7 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <header>
-            <h1>Amsterdam Rental Listings</h1>
+            <h1>{{ city_name }} Rental Listings</h1>
             <p>{{ listings|length }} listings scraped from {{ sources|length }} sources | Target: {{ work_address }}</p>
         </header>
 
@@ -711,10 +713,23 @@ HTML_TEMPLATE = """
 
 
 def export_to_html(
-    listings: list[dict | RentalListing], output_dir: Path, filename: str = None
+    listings: list[dict | RentalListing],
+    output_dir: Path,
+    filename: str = None,
+    city: str = None,
 ) -> Path:
-    """Generate interactive HTML report."""
+    """Generate interactive HTML report.
+
+    Args:
+        listings: List of listing dicts or RentalListing objects
+        output_dir: Output directory path
+        filename: Output filename (default: {city}_rentals.html)
+        city: City name for city-specific settings (default: amsterdam)
+    """
     import json
+
+    # Get city configuration
+    city_config = get_city_config(city) if city else get_city_config(DEFAULT_CITY)
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -739,15 +754,16 @@ def export_to_html(
     # Get unique sources
     sources = sorted(set(l.get("source_site", "") for l in listings_data if l.get("source_site")))
 
-    # Render template
+    # Render template with city-specific values
     template = Template(HTML_TEMPLATE)
     html_content = template.render(
         listings=listings_data,
         listings_json=json.dumps(listings_data),
         sources=sources,
-        work_lat=WORK_LAT,
-        work_lng=WORK_LNG,
-        work_address=WORK_ADDRESS,
+        work_lat=city_config.work_lat,
+        work_lng=city_config.work_lng,
+        work_address=city_config.work_address,
+        city_name=city_config.name,
     )
 
     filepath.write_text(html_content, encoding="utf-8")

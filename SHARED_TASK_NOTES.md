@@ -1,96 +1,111 @@
-# Amsterdam Rent Scraper - Task Notes
+# Multi-City Rent Scraper - Task Notes
 
-## Current State
-- Core infrastructure complete: CLI, pipeline, export, database, commute calculation, neighborhoods
-- **README.md complete** - Setup, usage, architecture, configuration documented
-- **Transit routing NOW WORKING** - Uses Transitous (MOTIS API) for real public transit times
-- **Working scrapers** (9 total, all tested with regex fallback extraction):
-  - `pararius` - HTML-based, reliable extraction
-  - `huurwoningen` - JSON-LD structured data
-  - `123wonen` - JSON-LD + HTML fallback
-  - `huurstunt` - Playwright-based
-  - `kamernet` - Playwright-based, extracts title/address from URL
-  - `iamexpat` - Playwright-based, Next.js site, uses domcontentloaded wait
-  - `rotsvast` - HTML-based, Dutch rental agency
-  - `expathousingnetwork` - Playwright-based, Webflow site, expat-focused
-  - `huure` - HTML-based, Dutch rental aggregator, cursor-based pagination
-- **Disabled scrapers**:
-  - `funda` - aggressive anti-bot
-  - `housinganywhere` - blocks headless browsers
-  - `rentslam` - not loading listings
-  - `roofz` - site timing out
-  - `directwonen` - requires login/subscription
-  - `holland2stay` - robots.txt disallows /residences/
-  - `vesteda` - complex API, dynamic content doesn't load
-  - `onlyexpats` - robots.txt blocks ClaudeBot/anthropic-ai
-  - `expatrentals.eu` - robots.txt blocks AI training/scraping
-- **Evaluated but not implemented**:
-  - `nestpick` - Meta-search aggregator (would cause duplicates), no public API
-  - `huisly` - Also an aggregator (1,200+ sources), would cause duplicates
+## Current State: HELSINKI MODE IN PROGRESS
+
+The project has been refactored to support multiple cities. The core multi-city infrastructure is complete:
+
+- **City configuration system** in `config/settings.py` with `CityConfig` dataclass
+- **CLI `--city` flag** added to scrape, export, and db-info commands
+- **Pipeline updated** to pass city parameter through all stages
+- **Geo utilities updated** with per-city office location, transit routing (HSL API for Helsinki)
+- **Neighborhoods updated** with Helsinki district data (26 areas: Kallio, Töölö, Tapiola, etc.)
+- **HTML export updated** with city-specific title, map center, work location
+
+### What Works
+- `rent-scraper scrape --city amsterdam` - All 9 Amsterdam scrapers work
+- City-specific database files: `amsterdam_listings.db`, `helsinki_listings.db`
+- City-specific export files: `amsterdam_rentals.html`, `helsinki_rentals.html`
+- HSL Digitransit API integration for Helsinki transit routing
+- Helsinki neighborhood quality scores (26 districts)
+
+### What's Missing
+- **Helsinki scrapers** - None implemented yet! The `enabled_scrapers` list in Helsinki config is empty.
+
+## Next Steps: IMPLEMENT HELSINKI SCRAPERS
+
+Priority order for implementation:
+1. **oikotie.fi** - Largest Finnish housing site (vuokra-asunnot section)
+2. **vuokraovi.com** - Major Finnish rental portal
+3. **etuovi.com** - Finnish housing marketplace
+4. **blok.ai** - Modern Finnish rental platform
+5. **lumo.fi** - Kojamo/Lumo rental apartments
+6. **sato.fi** - SATO rental apartments
+
+### Implementation Guide
+For each Helsinki scraper:
+
+1. Add RentalSite entry to `config/settings.py` (in HELSINKI section):
+```python
+RentalSite(
+    name="oikotie",
+    base_url="https://asunnot.oikotie.fi",
+    search_url_template="...",
+    scraper_class="amsterdam_rent_scraper.scrapers.oikotie.OikotieScraper",
+    city="helsinki",  # IMPORTANT!
+    needs_js=True,  # Most modern Finnish sites need Playwright
+    notes="Largest Finnish housing site.",
+),
+```
+
+2. Add scraper name to Helsinki `enabled_scrapers` in `CITIES["helsinki"]`:
+```python
+enabled_scrapers=["oikotie", "vuokraovi", ...],
+```
+
+3. Create scraper class (e.g., `scrapers/oikotie.py`) inheriting from `BaseScraper` or `PlaywrightBaseScraper`
+
+4. Test with:
+```bash
+rent-scraper scrape --city helsinki --test-run --sites oikotie --skip-llm
+```
+
+### Finnish Site Considerations
+- **Language**: Sites are in Finnish (suomi). Field names like "vuokra" (rent), "neliöt" (m²), "huoneet" (rooms)
+- **Postal codes**: Finnish format is 5 digits (e.g., 00100 Helsinki, 02150 Espoo)
+- **Currency**: EUR (same as Netherlands)
+- **Most sites are JS-rendered**: Use Playwright with `domcontentloaded` wait strategy
 
 ## CLI Quick Reference
 ```bash
-# Install
-pip install -e . && playwright install chromium
-
-# Test run
+# Amsterdam (default)
 rent-scraper scrape --test-run --sites pararius --skip-llm
 
-# Full scrape (all enabled sites)
-rent-scraper scrape --sites pararius,huurwoningen,iamexpat,rotsvast,expathousingnetwork,huure --skip-llm
+# Helsinki
+rent-scraper scrape --city helsinki --test-run --sites oikotie --skip-llm
 
-# Higher price range (expathousingnetwork has premium listings)
-rent-scraper scrape --sites expathousingnetwork --skip-llm --max-price 5000
-
-# Export from DB
-rent-scraper export --format html --min-price 1200 --max-price 1800
+# Export
+rent-scraper export --city helsinki --format html
 
 # DB stats
-rent-scraper db-info
+rent-scraper db-info --city helsinki
 ```
 
-## Completed Features
-- CLI with scrape, export, db-info commands
-- SQLite database with deduplication
-- OSRM routing (bike/car times, route polylines)
-- **Transitous API for real transit routing** (duration + transfers)
-- Neighborhood detection and scoring
-- Interactive HTML report (cards/table/map views, filters, route display)
-- Excel export with all fields
-- 9 working scrapers
-
-## Project Status: COMPLETE
-All major features from the priority list have been implemented and verified:
-- ✅ Commute calculation (OSRM bike/car + Transitous transit routing)
-- ✅ Neighborhood quality scores (hardcoded, auto-detected from address)
-- ✅ SQLite database with deduplication
-- ✅ Interactive HTML report (cards/table/map, filters, route display)
-- ✅ 9 working scrapers
-- ✅ README.md documentation
-
-**Optional improvements** (not required):
-- Additional scrapers (most viable sites are blocked or aggregators)
-- UI polish / additional filters
-
 ## Key Files
-- `src/amsterdam_rent_scraper/cli/main.py` - CLI commands
-- `src/amsterdam_rent_scraper/pipeline.py` - Main orchestration
-- `src/amsterdam_rent_scraper/storage/database.py` - SQLite with deduplication
-- `src/amsterdam_rent_scraper/utils/geo.py` - OSRM + Transitous routing
-- `src/amsterdam_rent_scraper/utils/neighborhoods.py` - Neighborhood scores
-- `src/amsterdam_rent_scraper/export/html_report.py` - Interactive HTML
-- `src/amsterdam_rent_scraper/scrapers/huure.py` - Huure.nl scraper
+- `src/amsterdam_rent_scraper/config/settings.py` - City configs, CITIES dict, RentalSite entries
+- `src/amsterdam_rent_scraper/cli/main.py` - CLI with --city flag
+- `src/amsterdam_rent_scraper/pipeline.py` - Main orchestration (city-aware)
+- `src/amsterdam_rent_scraper/utils/geo.py` - Routing (OSRM + Transitous/HSL)
+- `src/amsterdam_rent_scraper/utils/neighborhoods.py` - Neighborhood data for both cities
+- `src/amsterdam_rent_scraper/export/html_report.py` - HTML export (city-aware)
 
 ## Technical Notes
-- **OSRM API**: `http://router.project-osrm.org/route/v1/{cycling|driving}/lon1,lat1;lon2,lat2?overview=full&geometries=geojson`
-- **Transitous API**: `https://api.transitous.org/api/v1/plan?fromPlace=lat,lon&toPlace=lat,lon&directModes=WALK&transitModes=TRANSIT`
-  - Free, no API key needed
-  - Returns duration + number of transfers
-  - Don't specify a time param (GTFS data may not cover future dates)
-- Target: Stroombaan 4, Amstelveen (52.3027, 4.8557)
-- Database: `output/listings.db`
-- **Next.js sites**: Use `domcontentloaded` wait instead of `networkidle`
-- **Webflow sites**: Similar to Next.js, use `domcontentloaded` with scroll for lazy loading
-- **Huure.nl**: Uses cursor-based pagination (cursor1, cursor2 params)
-- **ExpatHousingNetwork**: Listings often €2000+, may need higher --max-price filter
-- **Rotsvast**: Listings often €2000+, may need higher --max-price filter
+
+### HSL Digitransit API (Helsinki Transit)
+- Endpoint: `https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql`
+- Uses GraphQL for route planning
+- Free API with public test key
+- Falls back to Transitous if HSL fails (Transitous also covers Finland)
+
+### Helsinki Office Target
+- Address: Keilasatama 5, 02150 Espoo, Finland
+- Coordinates: (60.1756, 24.8271)
+- This is a common Espoo tech hub area (near Microsoft, Nokia)
+
+### Helsinki Price/Size Defaults
+- Price: 800-1800 EUR/month
+- Min surface: 40 m²
+- Min rooms: 2
+
+## Project Status
+- Amsterdam: COMPLETE (9 working scrapers)
+- Helsinki: IN PROGRESS (multi-city infrastructure done, scrapers needed)

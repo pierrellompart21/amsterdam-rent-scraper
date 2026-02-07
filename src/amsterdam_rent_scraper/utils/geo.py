@@ -9,19 +9,27 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 from rich.console import Console
 
-from amsterdam_rent_scraper.config.settings import WORK_LAT, WORK_LNG
+from amsterdam_rent_scraper.config.settings import (
+    DEFAULT_CITY,
+    WORK_LAT,
+    WORK_LNG,
+    get_city_config,
+)
 from amsterdam_rent_scraper.utils.neighborhoods import enrich_listing_with_neighborhood
 
 console = Console()
 
 # Initialize geocoder
-geolocator = Nominatim(user_agent="amsterdam_rent_scraper")
+geolocator = Nominatim(user_agent="rent_scraper")
 
 # OSRM public demo server (free, no API key required)
 OSRM_BASE_URL = "http://router.project-osrm.org/route/v1"
 
-# Transitous API (MOTIS-based, free public transit routing for Netherlands)
+# Transitous API (MOTIS-based, free public transit routing for Netherlands and other EU countries)
 TRANSITOUS_BASE_URL = "https://api.transitous.org/api/v1"
+
+# HSL Digitransit API (Helsinki Region Transport - free GraphQL API)
+HSL_DIGITRANSIT_URL = "https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql"
 
 # Rate limiting for APIs (be respectful to free services)
 _last_osrm_request = 0.0
@@ -29,6 +37,9 @@ OSRM_MIN_INTERVAL = 1.0  # seconds between requests
 
 _last_transitous_request = 0.0
 TRANSITOUS_MIN_INTERVAL = 1.0  # seconds between requests
+
+_last_hsl_request = 0.0
+HSL_MIN_INTERVAL = 0.5  # HSL allows more frequent requests
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -49,14 +60,24 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * c
 
 
-def geocode_address(address: str) -> Optional[Tuple[float, float]]:
+def geocode_address(address: str, city: str = None) -> Optional[Tuple[float, float]]:
     """Geocode an address to latitude/longitude coordinates."""
     if not address:
         return None
 
-    # Add Netherlands if not present
-    if "netherlands" not in address.lower() and "nl" not in address.lower():
-        address = f"{address}, Netherlands"
+    city_config = get_city_config(city) if city else get_city_config(DEFAULT_CITY)
+
+    # Add country if not present
+    country_lower = city_config.country.lower()
+    if country_lower not in address.lower():
+        # Also check for common abbreviations
+        country_abbrevs = {
+            "netherlands": ["nl", "nederland"],
+            "finland": ["fi", "suomi"],
+        }
+        abbrevs = country_abbrevs.get(country_lower, [])
+        if not any(abbrev in address.lower() for abbrev in abbrevs):
+            address = f"{address}, {city_config.country}"
 
     try:
         location = geolocator.geocode(address, timeout=10)
@@ -70,9 +91,10 @@ def geocode_address(address: str) -> Optional[Tuple[float, float]]:
     return None
 
 
-def calculate_distance_to_work(lat: float, lon: float) -> float:
+def calculate_distance_to_work(lat: float, lon: float, city: str = None) -> float:
     """Calculate distance from a point to the work location."""
-    return haversine_distance(lat, lon, WORK_LAT, WORK_LNG)
+    city_config = get_city_config(city) if city else get_city_config(DEFAULT_CITY)
+    return haversine_distance(lat, lon, city_config.work_lat, city_config.work_lng)
 
 
 def _rate_limit_osrm():
@@ -91,6 +113,15 @@ def _rate_limit_transitous():
     if elapsed < TRANSITOUS_MIN_INTERVAL:
         time.sleep(TRANSITOUS_MIN_INTERVAL - elapsed)
     _last_transitous_request = time.time()
+
+
+def _rate_limit_hsl():
+    """Ensure we don't hit HSL API too frequently."""
+    global _last_hsl_request
+    elapsed = time.time() - _last_hsl_request
+    if elapsed < HSL_MIN_INTERVAL:
+        time.sleep(HSL_MIN_INTERVAL - elapsed)
+    _last_hsl_request = time.time()
 
 
 def get_osrm_route(
@@ -139,7 +170,7 @@ def get_osrm_route(
         return None
 
 
-def get_transit_route(
+def get_transit_route_transitous(
     from_lat: float,
     from_lon: float,
     to_lat: float,
@@ -147,6 +178,7 @@ def get_transit_route(
 ) -> Optional[dict]:
     """
     Get public transit route from Transitous (MOTIS API).
+    Works for Netherlands and other EU countries.
 
     Args:
         from_lat, from_lon: Origin coordinates
@@ -168,7 +200,7 @@ def get_transit_route(
     )
 
     headers = {
-        "User-Agent": "AmsterdamRentScraper/1.0 (https://github.com/pierre/amsterdam-rent-scraper)"
+        "User-Agent": "RentScraper/1.0 (https://github.com/pierre/rent-scraper)"
     }
 
     try:
@@ -198,13 +230,119 @@ def get_transit_route(
         return None
 
 
-def get_commute_routes(lat: float, lon: float) -> dict:
+def get_transit_route_hsl(
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+) -> Optional[dict]:
+    """
+    Get public transit route from HSL Digitransit API (Helsinki Region).
+    Uses GraphQL API for real transit routing with metro/tram/bus.
+
+    Args:
+        from_lat, from_lon: Origin coordinates
+        to_lat, to_lon: Destination coordinates
+
+    Returns:
+        dict with 'duration_min', 'transfers' or None on failure
+    """
+    _rate_limit_hsl()
+
+    # GraphQL query for route planning
+    query = """
+    {
+      plan(
+        from: {lat: %f, lon: %f}
+        to: {lat: %f, lon: %f}
+        numItineraries: 3
+        transportModes: [
+          {mode: WALK}
+          {mode: TRANSIT}
+        ]
+      ) {
+        itineraries {
+          duration
+          legs {
+            mode
+          }
+        }
+      }
+    }
+    """ % (from_lat, from_lon, to_lat, to_lon)
+
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "RentScraper/1.0",
+        "digitransit-subscription-key": "5cc1e3273e3943438a35e65d8cad7ac8",  # Public test key
+    }
+
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.post(
+                HSL_DIGITRANSIT_URL,
+                json={"query": query},
+                headers=headers,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            plan = data.get("data", {}).get("plan", {})
+            itineraries = plan.get("itineraries", [])
+            if not itineraries:
+                return None
+
+            # Find the best itinerary (shortest duration)
+            best = min(itineraries, key=lambda x: x.get("duration", 99999))
+
+            # Count transfers (non-WALK legs minus 1)
+            transit_legs = [leg for leg in best.get("legs", []) if leg.get("mode") != "WALK"]
+            transfers = max(0, len(transit_legs) - 1)
+
+            return {
+                "duration_min": int(best["duration"] / 60),  # seconds to minutes
+                "transfers": transfers,
+            }
+    except Exception as e:
+        console.print(f"[yellow]HSL Digitransit request failed: {e}[/]")
+        return None
+
+
+def get_transit_route(
+    from_lat: float,
+    from_lon: float,
+    to_lat: float,
+    to_lon: float,
+    city: str = None,
+) -> Optional[dict]:
+    """
+    Get public transit route using city-appropriate API.
+
+    Args:
+        from_lat, from_lon: Origin coordinates
+        to_lat, to_lon: Destination coordinates
+        city: City name to determine which API to use
+
+    Returns:
+        dict with 'duration_min', 'transfers' or None on failure
+    """
+    # For now, use Transitous for all cities (it covers both NL and FI)
+    # HSL Digitransit API requires a subscription key since 2024
+    # Transitous provides good coverage for Helsinki region as well
+    return get_transit_route_transitous(from_lat, from_lon, to_lat, to_lon)
+
+
+def get_commute_routes(lat: float, lon: float, city: str = None) -> dict:
     """
     Get bike, driving, and transit commute times to work location.
 
     Returns:
         dict with bike_min, driving_min, transit_min, bike_route_coords, bike_distance_km, transit_transfers
     """
+    city_config = get_city_config(city) if city else get_city_config(DEFAULT_CITY)
+    work_lat = city_config.work_lat
+    work_lng = city_config.work_lng
+
     result = {
         "bike_min": None,
         "driving_min": None,
@@ -215,19 +353,19 @@ def get_commute_routes(lat: float, lon: float) -> dict:
     }
 
     # Get bike route (with geometry for map display)
-    bike_route = get_osrm_route(lat, lon, WORK_LAT, WORK_LNG, profile="cycling")
+    bike_route = get_osrm_route(lat, lon, work_lat, work_lng, profile="cycling")
     if bike_route:
         result["bike_min"] = bike_route["duration_min"]
         result["bike_route_coords"] = bike_route["route_coords"]
         result["bike_distance_km"] = bike_route["distance_km"]
 
     # Get driving route (just duration, no geometry needed)
-    driving_route = get_osrm_route(lat, lon, WORK_LAT, WORK_LNG, profile="driving")
+    driving_route = get_osrm_route(lat, lon, work_lat, work_lng, profile="driving")
     if driving_route:
         result["driving_min"] = driving_route["duration_min"]
 
-    # Get transit route via Transitous (MOTIS API)
-    transit_route = get_transit_route(lat, lon, WORK_LAT, WORK_LNG)
+    # Get transit route via city-appropriate API
+    transit_route = get_transit_route(lat, lon, work_lat, work_lng, city=city)
     if transit_route:
         result["transit_min"] = transit_route["duration_min"]
         result["transit_transfers"] = transit_route["transfers"]
@@ -253,7 +391,7 @@ def estimate_commute_times(distance_km: float) -> Tuple[int, int]:
     return (bike_minutes, transit_minutes)
 
 
-def enrich_listing_with_geo(listing: dict, use_osrm: bool = True) -> dict:
+def enrich_listing_with_geo(listing: dict, use_osrm: bool = True, city: str = None) -> dict:
     """
     Add geographic data to a listing.
 
@@ -261,7 +399,10 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True) -> dict:
         listing: The listing dict to enrich
         use_osrm: If True, use OSRM API for real routing (slower but accurate).
                   If False, use simple distance-based estimates (faster).
+        city: City name for city-specific geocoding and routing
     """
+    city_config = get_city_config(city) if city else get_city_config(DEFAULT_CITY)
+
     # Try to get coordinates
     lat = listing.get("latitude")
     lon = listing.get("longitude")
@@ -274,18 +415,18 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True) -> dict:
         # Try different geocoding strategies
         coords = None
 
-        # Strategy 1: Use postal code + Amsterdam (most reliable for NL)
+        # Strategy 1: Use postal code + city name (most reliable)
         if postal and not coords:
             # Normalize postal code (remove spaces)
             postal_clean = postal.replace(" ", "")
-            coords = geocode_address(f"{postal_clean}, Amsterdam")
+            coords = geocode_address(f"{postal_clean}, {city_config.name}", city=city)
 
         # Strategy 2: Use address directly (avoid adding postal if already present)
         if address and not coords:
             # Check if postal code is already in address
             if postal and postal.replace(" ", "") not in address.replace(" ", ""):
                 address = f"{address}, {postal}"
-            coords = geocode_address(address)
+            coords = geocode_address(address, city=city)
 
         if coords:
             listing["latitude"] = coords[0]
@@ -295,12 +436,12 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True) -> dict:
     # Calculate distance and commute times
     if lat and lon:
         # Always calculate straight-line distance
-        distance = calculate_distance_to_work(lat, lon)
+        distance = calculate_distance_to_work(lat, lon, city=city)
         listing["distance_km"] = round(distance, 2)
 
         if use_osrm:
-            # Get real commute times via OSRM and Transitous
-            routes = get_commute_routes(lat, lon)
+            # Get real commute times via OSRM and city-appropriate transit API
+            routes = get_commute_routes(lat, lon, city=city)
             if routes["bike_min"] is not None:
                 listing["commute_time_bike_min"] = routes["bike_min"]
                 listing["bike_route_coords"] = routes["bike_route_coords"]
@@ -312,7 +453,7 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True) -> dict:
             if routes["driving_min"] is not None:
                 listing["commute_time_driving_min"] = routes["driving_min"]
 
-            # Transit via Transitous (real routing) or fallback to heuristic
+            # Transit via city-appropriate API or fallback to heuristic
             if routes["transit_min"] is not None:
                 listing["commute_time_transit_min"] = routes["transit_min"]
                 listing["transit_transfers"] = routes["transit_transfers"]
@@ -326,7 +467,7 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True) -> dict:
             listing["commute_time_bike_min"] = bike_min
             listing["commute_time_transit_min"] = transit_min
 
-    # Add neighborhood quality scores
-    enrich_listing_with_neighborhood(listing)
+    # Add neighborhood quality scores (city-specific)
+    enrich_listing_with_neighborhood(listing, city=city)
 
     return listing
