@@ -65,7 +65,7 @@ CITIES: dict[str, CityConfig] = {
         map_center_lng=24.9384,
         map_default_zoom=11,
         transit_api="hsl",  # Helsinki Region Transport (HSL) Digitransit API
-        enabled_scrapers=["sato", "oikotie", "lumo", "ta"],  # Finnish rental scrapers
+        enabled_scrapers=["sato", "oikotie", "lumo", "ta", "retta"],  # Finnish rental scrapers
     ),
 }
 
@@ -321,8 +321,18 @@ RENTAL_SITES: list[RentalSite] = [
         needs_js=True,
         notes="TA-Asunnot rental company. WordPress site with 5,000+ apartments.",
     ),
+    RentalSite(
+        name="retta",
+        base_url="https://vuokraus.rettamanagement.fi",
+        search_url_template="https://vuokraus.rettamanagement.fi/asunnot",
+        scraper_class="amsterdam_rent_scraper.scrapers.retta.RettaScraper",
+        city="helsinki",
+        needs_js=True,
+        notes="Retta Management rental apartments. Next.js site with JSON data in __NEXT_DATA__.",
+    ),
     # Additional Helsinki sites to implement:
     # - etuovi.com (Finnish housing marketplace - redirects to vuokraovi for rentals)
+    # - a-kruunu.fi (affordable rentals, uses Knockout.js - complex to scrape)
 ]
 
 
