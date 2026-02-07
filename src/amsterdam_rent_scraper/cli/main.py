@@ -1,4 +1,4 @@
-"""CLI entry point for the Amsterdam rent scraper."""
+"""CLI entry point for the multi-city rent scraper."""
 
 from enum import Enum
 from pathlib import Path
@@ -7,8 +7,10 @@ from typing import Optional
 import typer
 from rich.console import Console
 
+from amsterdam_rent_scraper.config.settings import CITIES, DEFAULT_CITY, get_city_config
+
 app = typer.Typer(
-    name="rent-scraper", help="Amsterdam rental listing scraper + LLM extraction"
+    name="rent-scraper", help="Multi-city rental listing scraper + LLM extraction"
 )
 console = Console()
 
@@ -22,6 +24,10 @@ class ExportFormat(str, Enum):
 
 @app.command()
 def scrape(
+    city: str = typer.Option(
+        DEFAULT_CITY, "--city", "-c",
+        help=f"City to scrape ({', '.join(CITIES.keys())})"
+    ),
     test_run: bool = typer.Option(
         False, "--test-run", "-t", help="Scrape only 3 listings per site"
     ),
@@ -29,13 +35,17 @@ def scrape(
         False, "--full-run", "-f", help="Scrape all listings from all sites"
     ),
     sites: list[str] = typer.Option(
-        None, "--sites", "-s", help="Filter specific sites (e.g. funda,pararius)"
+        None, "--sites", "-s", help="Filter specific sites (e.g. pararius,huurwoningen)"
     ),
     max_listings: int = typer.Option(
         None, "--max-listings", "-n", help="Max listings per site (overrides --test-run limit)"
     ),
-    min_price: int = typer.Option(1000, "--min-price", help="Minimum rent in EUR"),
-    max_price: int = typer.Option(2000, "--max-price", help="Maximum rent in EUR"),
+    min_price: int = typer.Option(
+        None, "--min-price", help="Minimum rent in EUR (default: city-specific)"
+    ),
+    max_price: int = typer.Option(
+        None, "--max-price", help="Maximum rent in EUR (default: city-specific)"
+    ),
     output_dir: Path = typer.Option(
         Path("output"), "--output-dir", "-o", help="Output directory"
     ),
@@ -46,24 +56,41 @@ def scrape(
         False, "--apartments-only", "-a", help="Filter out rooms/shared housing"
     ),
     min_surface: int = typer.Option(
-        None, "--min-surface", help="Minimum surface area in m²"
+        None, "--min-surface", help="Minimum surface area in m² (default: city-specific)"
     ),
     min_rooms: int = typer.Option(
-        None, "--min-rooms", help="Minimum number of rooms"
+        None, "--min-rooms", help="Minimum number of rooms (default: city-specific)"
     ),
     ollama_model: str = typer.Option(
         "llama3", "--model", "-m", help="Ollama model name"
     ),
+    resume: bool = typer.Option(
+        False, "--resume", "-r", help="Resume from last checkpoint if available"
+    ),
 ):
     """
-    Scrape Dutch rental websites for Amsterdam/Amstelveen apartments.
+    Scrape rental websites for apartment listings.
 
     Examples:
-        rent-scraper --test-run
-        rent-scraper --full-run --sites funda,pararius
-        rent-scraper -t --min-price 1200 --max-price 1800
+        rent-scraper scrape --city amsterdam --test-run
+        rent-scraper scrape --city helsinki --sites oikotie,vuokraovi
+        rent-scraper scrape -c amsterdam -t --min-price 1200 --max-price 1800
+        rent-scraper scrape --resume  # Resume a failed run
     """
     from amsterdam_rent_scraper.pipeline import run_pipeline
+
+    # Get city configuration
+    try:
+        city_config = get_city_config(city)
+    except ValueError as e:
+        console.print(f"[red]{e}[/]")
+        raise typer.Exit(1)
+
+    # Use city defaults if not specified
+    min_price = min_price if min_price is not None else city_config.min_price
+    max_price = max_price if max_price is not None else city_config.max_price
+    min_surface = min_surface if min_surface is not None else city_config.min_surface
+    min_rooms = min_rooms if min_rooms is not None else city_config.min_rooms
 
     site_filter = None
     if sites:
@@ -73,13 +100,20 @@ def scrape(
             site_filter.extend(s.split(","))
 
     mode = "test" if test_run else "full"
-    console.print(f"[bold]Amsterdam Rent Scraper - {mode} mode[/]")
-    console.print(f"   Price range: EUR {min_price} - {max_price}")
+    if resume:
+        console.print(f"[bold]{city_config.name} Rent Scraper - resuming {mode} mode[/]")
+    else:
+        console.print(f"[bold]{city_config.name} Rent Scraper - {mode} mode[/]")
+    console.print(f"   City: {city_config.name}, {city_config.country}")
+    console.print(f"   Target: {city_config.work_address}")
+    console.print(f"   Price range: {city_config.currency} {min_price} - {max_price}")
     console.print(f"   Output: {output_dir}")
     if site_filter:
         console.print(f"   Sites: {', '.join(site_filter)}")
     if max_listings:
         console.print(f"   Max listings per site: {max_listings}")
+    if resume:
+        console.print(f"   [green]Resume mode: enabled[/]")
 
     if apartments_only:
         console.print("   Filter: apartments only (no rooms/shared)")
@@ -89,6 +123,7 @@ def scrape(
         console.print(f"   Min rooms: {min_rooms}")
 
     run_pipeline(
+        city=city,
         test_mode=test_run,
         site_filter=site_filter,
         skip_llm=skip_llm,
@@ -99,11 +134,16 @@ def scrape(
         apartments_only=apartments_only,
         min_surface=min_surface,
         min_rooms=min_rooms,
+        resume=resume,
     )
 
 
 @app.command()
 def export(
+    city: str = typer.Option(
+        DEFAULT_CITY, "--city", "-c",
+        help=f"City for export settings ({', '.join(CITIES.keys())})"
+    ),
     format: ExportFormat = typer.Option(
         ExportFormat.both, "--format", "-f", help="Export format: excel, html, or both"
     ),
@@ -111,7 +151,7 @@ def export(
         Path("output"), "--output-dir", "-o", help="Output directory"
     ),
     db_path: Optional[Path] = typer.Option(
-        None, "--db", "-d", help="Database path (default: output/listings.db)"
+        None, "--db", "-d", help="Database path (default: output/{city}_listings.db)"
     ),
     min_price: Optional[int] = typer.Option(None, "--min-price", help="Minimum rent filter"),
     max_price: Optional[int] = typer.Option(None, "--max-price", help="Maximum rent filter"),
@@ -126,8 +166,8 @@ def export(
     Export listings from database to Excel/HTML without re-scraping.
 
     Examples:
-        rent-scraper export --format excel
-        rent-scraper export --format html --min-price 1200 --max-price 1800
+        rent-scraper export --city amsterdam --format excel
+        rent-scraper export --city helsinki --format html --min-price 1000
         rent-scraper export --source pararius --min-surface 60
     """
     from datetime import datetime
@@ -136,16 +176,31 @@ def export(
     from amsterdam_rent_scraper.export.html_report import export_to_html
     from amsterdam_rent_scraper.storage.database import ListingDatabase
 
-    # Determine database path
+    # Get city configuration
+    try:
+        city_config = get_city_config(city)
+    except ValueError as e:
+        console.print(f"[red]{e}[/]")
+        raise typer.Exit(1)
+
+    city_lower = city.lower()
+
+    # Determine database path (city-specific)
     if db_path is None:
-        db_path = output_dir / "listings.db"
+        db_path = output_dir / f"{city_lower}_listings.db"
+        # Fall back to legacy path for backward compatibility
+        if not db_path.exists() and city_lower == "amsterdam":
+            legacy_path = output_dir / "listings.db"
+            if legacy_path.exists():
+                db_path = legacy_path
 
     if not db_path.exists():
         console.print(f"[red]Database not found: {db_path}[/]")
-        console.print("Run 'rent-scraper' first to scrape and create the database.")
+        console.print(f"Run 'rent-scraper scrape --city {city}' first to create the database.")
         raise typer.Exit(1)
 
     console.print(f"[bold]Exporting from database: {db_path}[/]")
+    console.print(f"   City: {city_config.name}")
 
     # Open database and get listings
     with ListingDatabase(db_path) as db:
@@ -176,16 +231,17 @@ def export(
 
     if format in (ExportFormat.excel, ExportFormat.both):
         excel_path = export_to_excel(
-            listings, output_dir, f"amsterdam_rentals_{timestamp}.xlsx"
+            listings, output_dir, f"{city_lower}_rentals_{timestamp}.xlsx"
         )
-        export_to_excel(listings, output_dir, "amsterdam_rentals.xlsx")
+        export_to_excel(listings, output_dir, f"{city_lower}_rentals.xlsx")
         console.print(f"  Excel: {excel_path}")
 
     if format in (ExportFormat.html, ExportFormat.both):
         html_path = export_to_html(
-            listings, output_dir, f"amsterdam_rentals_{timestamp}.html"
+            listings, output_dir, f"{city_lower}_rentals_{timestamp}.html",
+            city=city,
         )
-        export_to_html(listings, output_dir, "amsterdam_rentals.html")
+        export_to_html(listings, output_dir, f"{city_lower}_rentals.html", city=city)
         console.print(f"  HTML: {html_path}")
 
     console.print("\n[bold green]Export complete![/]")
@@ -193,8 +249,12 @@ def export(
 
 @app.command()
 def db_info(
+    city: str = typer.Option(
+        DEFAULT_CITY, "--city", "-c",
+        help=f"City to show info for ({', '.join(CITIES.keys())})"
+    ),
     db_path: Optional[Path] = typer.Option(
-        None, "--db", "-d", help="Database path (default: output/listings.db)"
+        None, "--db", "-d", help="Database path (default: output/{city}_listings.db)"
     ),
     output_dir: Path = typer.Option(
         Path("output"), "--output-dir", "-o", help="Output directory"
@@ -205,12 +265,20 @@ def db_info(
 
     Examples:
         rent-scraper db-info
+        rent-scraper db-info --city helsinki
         rent-scraper db-info --db /path/to/listings.db
     """
     from amsterdam_rent_scraper.storage.database import ListingDatabase
 
+    city_lower = city.lower()
+
     if db_path is None:
-        db_path = output_dir / "listings.db"
+        db_path = output_dir / f"{city_lower}_listings.db"
+        # Fall back to legacy path for backward compatibility
+        if not db_path.exists() and city_lower == "amsterdam":
+            legacy_path = output_dir / "listings.db"
+            if legacy_path.exists():
+                db_path = legacy_path
 
     if not db_path.exists():
         console.print(f"[red]Database not found: {db_path}[/]")
@@ -221,6 +289,7 @@ def db_info(
         sources = db.get_sources_summary()
 
         console.print(f"\n[bold]Database: {db_path}[/]")
+        console.print(f"[cyan]City: {city.capitalize()}[/]")
         console.print(f"[cyan]Total listings: {total}[/]\n")
 
         if sources:
@@ -229,6 +298,47 @@ def db_info(
                 console.print(f"  {site}: {count}")
         else:
             console.print("[yellow]No listings in database.[/]")
+
+
+@app.command()
+def checkpoint(
+    output_dir: Path = typer.Option(
+        Path("output"), "--output-dir", "-o", help="Output directory"
+    ),
+    clear: bool = typer.Option(
+        False, "--clear", "-c", help="Clear existing checkpoint"
+    ),
+):
+    """
+    Check or manage pipeline checkpoint status.
+
+    Examples:
+        rent-scraper checkpoint           # Show checkpoint status
+        rent-scraper checkpoint --clear   # Clear checkpoint and start fresh
+    """
+    from amsterdam_rent_scraper.pipeline import load_checkpoint, clear_checkpoint, get_checkpoint_path
+
+    checkpoint_path = get_checkpoint_path(output_dir)
+
+    if clear:
+        if checkpoint_path.exists():
+            clear_checkpoint(output_dir)
+            console.print("[green]Checkpoint cleared.[/]")
+        else:
+            console.print("[yellow]No checkpoint to clear.[/]")
+        return
+
+    checkpoint = load_checkpoint(output_dir)
+    if checkpoint:
+        console.print(f"\n[bold]Checkpoint found: {checkpoint_path}[/]")
+        console.print(f"  Stage: [cyan]{checkpoint.get('stage')}[/]")
+        console.print(f"  Listings: [cyan]{len(checkpoint.get('listings', []))}[/]")
+        if checkpoint.get('stage') == 'geocoding':
+            console.print(f"  Geocoding progress: [cyan]{checkpoint.get('geocoding_index', 0)}/{len(checkpoint.get('listings', []))}[/]")
+        console.print(f"  Saved at: [dim]{checkpoint.get('saved_at')}[/]")
+        console.print(f"\n[green]Run 'rent-scraper scrape --resume' to continue[/]")
+    else:
+        console.print("[yellow]No checkpoint found.[/]")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
-"""Amsterdam neighborhood quality scores.
+"""City neighborhood quality scores.
 
-Hardcoded ratings for Amsterdam districts and nearby municipalities.
+Hardcoded ratings for districts in supported cities.
 Scores are 1-10 for various quality metrics.
 """
 
@@ -337,7 +337,266 @@ NEIGHBORHOOD_DATA: dict[str, NeighborhoodScores] = {
     ),
 }
 
-# Alternative name mappings for neighborhood detection
+# === HELSINKI (Finland) district ratings ===
+# Based on livability data, expat guides, and local reputation
+HELSINKI_NEIGHBORHOOD_DATA: dict[str, NeighborhoodScores] = {
+    # === Central Helsinki ===
+    "kallio": NeighborhoodScores(
+        name="Kallio",
+        safety=7,  # Trendy but some nightlife noise
+        green_space=5,  # Urban, but parks nearby
+        amenities=9,  # Excellent shops, bars, cafes
+        restaurants=9,  # Vibrant food scene
+        family_friendly=5,  # More young professionals
+        expat_friendly=8,  # Popular with expats
+    ),
+    "kamppi": NeighborhoodScores(
+        name="Kamppi",
+        safety=8,
+        green_space=4,  # Very urban, shopping center
+        amenities=10,  # Major shopping hub
+        restaurants=9,
+        family_friendly=5,
+        expat_friendly=9,
+    ),
+    "punavuori": NeighborhoodScores(
+        name="Punavuori",
+        safety=9,
+        green_space=5,
+        amenities=9,  # Design district
+        restaurants=10,  # Best restaurants
+        family_friendly=6,
+        expat_friendly=9,
+    ),
+    "ullanlinna": NeighborhoodScores(
+        name="Ullanlinna",
+        safety=9,
+        green_space=7,  # Near sea, Kaivopuisto
+        amenities=8,
+        restaurants=8,
+        family_friendly=8,
+        expat_friendly=9,  # Diplomatic area
+    ),
+    "töölö": NeighborhoodScores(
+        name="Töölö",
+        safety=9,
+        green_space=8,  # Near Töölönlahti bay
+        amenities=8,
+        restaurants=7,
+        family_friendly=9,
+        expat_friendly=8,
+    ),
+    "kruununhaka": NeighborhoodScores(
+        name="Kruununhaka",
+        safety=9,
+        green_space=5,  # Historic center
+        amenities=8,
+        restaurants=7,
+        family_friendly=7,
+        expat_friendly=8,
+    ),
+    # === Eastern Helsinki ===
+    "sörnäinen": NeighborhoodScores(
+        name="Sörnäinen",
+        safety=6,  # Developing area
+        green_space=5,
+        amenities=7,
+        restaurants=7,
+        family_friendly=5,
+        expat_friendly=6,
+    ),
+    "vallila": NeighborhoodScores(
+        name="Vallila",
+        safety=8,
+        green_space=6,
+        amenities=7,
+        restaurants=6,
+        family_friendly=7,
+        expat_friendly=7,
+    ),
+    "pasila": NeighborhoodScores(
+        name="Pasila",
+        safety=7,
+        green_space=5,  # Rail hub area
+        amenities=7,
+        restaurants=5,
+        family_friendly=6,
+        expat_friendly=6,
+    ),
+    "arabia": NeighborhoodScores(
+        name="Arabia",
+        safety=8,
+        green_space=7,  # Near Vanhankaupunginlahti
+        amenities=7,
+        restaurants=6,
+        family_friendly=8,
+        expat_friendly=7,
+    ),
+    "herttoniemi": NeighborhoodScores(
+        name="Herttoniemi",
+        safety=8,
+        green_space=8,  # Nature areas
+        amenities=6,
+        restaurants=5,
+        family_friendly=8,
+        expat_friendly=6,
+    ),
+    "kulosaari": NeighborhoodScores(
+        name="Kulosaari",
+        safety=9,
+        green_space=9,  # Island community
+        amenities=5,
+        restaurants=4,
+        family_friendly=9,
+        expat_friendly=7,
+    ),
+    "vuosaari": NeighborhoodScores(
+        name="Vuosaari",
+        safety=6,
+        green_space=8,  # Beach, nature
+        amenities=7,
+        restaurants=5,
+        family_friendly=7,
+        expat_friendly=5,
+    ),
+    "kontula": NeighborhoodScores(
+        name="Kontula",
+        safety=5,  # More affordable but less safe
+        green_space=7,
+        amenities=6,
+        restaurants=5,
+        family_friendly=6,
+        expat_friendly=4,
+    ),
+    "malmi": NeighborhoodScores(
+        name="Malmi",
+        safety=6,
+        green_space=7,
+        amenities=7,
+        restaurants=5,
+        family_friendly=7,
+        expat_friendly=5,
+    ),
+    # === Northern Helsinki ===
+    "oulunkylä": NeighborhoodScores(
+        name="Oulunkylä",
+        safety=8,
+        green_space=8,
+        amenities=6,
+        restaurants=5,
+        family_friendly=9,
+        expat_friendly=6,
+    ),
+    "käpylä": NeighborhoodScores(
+        name="Käpylä",
+        safety=9,
+        green_space=8,  # Garden city
+        amenities=6,
+        restaurants=5,
+        family_friendly=9,
+        expat_friendly=7,
+    ),
+    # === Western Helsinki ===
+    "munkkiniemi": NeighborhoodScores(
+        name="Munkkiniemi",
+        safety=9,
+        green_space=9,  # Near Central Park
+        amenities=7,
+        restaurants=6,
+        family_friendly=9,
+        expat_friendly=8,
+    ),
+    "lauttasaari": NeighborhoodScores(
+        name="Lauttasaari",
+        safety=9,
+        green_space=8,  # Island, beaches
+        amenities=8,
+        restaurants=7,
+        family_friendly=9,
+        expat_friendly=8,
+    ),
+    "jätkäsaari": NeighborhoodScores(
+        name="Jätkäsaari",
+        safety=9,
+        green_space=6,  # New development
+        amenities=7,
+        restaurants=7,
+        family_friendly=8,
+        expat_friendly=8,
+    ),
+    "ruoholahti": NeighborhoodScores(
+        name="Ruoholahti",
+        safety=9,
+        green_space=6,  # Near water
+        amenities=8,
+        restaurants=7,
+        family_friendly=7,
+        expat_friendly=8,
+    ),
+    # === Espoo (Western Greater Helsinki) ===
+    "tapiola": NeighborhoodScores(
+        name="Tapiola",
+        safety=9,
+        green_space=9,  # Garden city design
+        amenities=9,  # Major center
+        restaurants=7,
+        family_friendly=9,
+        expat_friendly=9,  # Many tech companies
+    ),
+    "otaniemi": NeighborhoodScores(
+        name="Otaniemi",
+        safety=9,
+        green_space=8,  # Aalto campus
+        amenities=6,
+        restaurants=5,
+        family_friendly=6,
+        expat_friendly=9,  # University, tech hub
+    ),
+    "leppävaara": NeighborhoodScores(
+        name="Leppävaara",
+        safety=8,
+        green_space=7,
+        amenities=9,  # Sello mall
+        restaurants=6,
+        family_friendly=8,
+        expat_friendly=7,
+    ),
+    "matinkylä": NeighborhoodScores(
+        name="Matinkylä",
+        safety=8,
+        green_space=7,
+        amenities=8,  # Iso Omena mall
+        restaurants=6,
+        family_friendly=8,
+        expat_friendly=7,
+    ),
+    "keilaniemi": NeighborhoodScores(
+        name="Keilaniemi",
+        safety=9,
+        green_space=7,  # Waterfront, near nature
+        amenities=6,  # Business district
+        restaurants=6,
+        family_friendly=5,  # More offices
+        expat_friendly=10,  # Tech headquarters (Microsoft, Nokia, etc.)
+    ),
+    "espoo center": NeighborhoodScores(
+        name="Espoo Center",
+        safety=8,
+        green_space=7,
+        amenities=8,
+        restaurants=6,
+        family_friendly=8,
+        expat_friendly=7,
+    ),
+}
+
+# City-specific neighborhood data lookup
+CITY_NEIGHBORHOOD_DATA: dict[str, dict[str, NeighborhoodScores]] = {
+    "amsterdam": NEIGHBORHOOD_DATA,
+    "helsinki": HELSINKI_NEIGHBORHOOD_DATA,
+}
+
+# Alternative name mappings for neighborhood detection (Amsterdam)
 NEIGHBORHOOD_ALIASES: dict[str, str] = {
     # Centrum variations
     "city center": "centrum",
@@ -397,34 +656,69 @@ NEIGHBORHOOD_ALIASES: dict[str, str] = {
     "science park": "watergraafsmeer",
 }
 
+# Alternative name mappings for Helsinki neighborhood detection
+HELSINKI_NEIGHBORHOOD_ALIASES: dict[str, str] = {
+    # Finnish/Swedish variations
+    "tölö": "töölö",
+    "berghäll": "kallio",  # Swedish name
+    "drumsö": "lauttasaari",  # Swedish name
+    "busholmen": "jätkäsaari",  # Swedish name
+    "gräsviken": "ruoholahti",  # Swedish name
+    "hagalund": "tapiola",  # Swedish name
+    "otnäs": "otaniemi",  # Swedish name
+    "alberga": "leppävaara",  # Swedish name
+    "mattby": "matinkylä",  # Swedish name
+    # Area variations
+    "espoo centre": "espoo center",
+    "espoon keskus": "espoo center",
+    "sello": "leppävaara",
+    "iso omena": "matinkylä",
+    "aalto university": "otaniemi",
+    "aalto": "otaniemi",
+    "design district": "punavuori",
+    "eira": "ullanlinna",
+    "kaivopuisto": "ullanlinna",
+}
 
-def normalize_neighborhood_name(name: str) -> str:
+# City-specific aliases
+CITY_NEIGHBORHOOD_ALIASES: dict[str, dict[str, str]] = {
+    "amsterdam": NEIGHBORHOOD_ALIASES,
+    "helsinki": HELSINKI_NEIGHBORHOOD_ALIASES,
+}
+
+
+def normalize_neighborhood_name(name: str, target_city: str = "amsterdam") -> str:
     """Normalize a neighborhood name for lookup."""
     if not name:
         return ""
     # Lowercase and strip
     normalized = name.lower().strip()
-    # Remove common prefixes
-    for prefix in ["amsterdam ", "amsterdam-"]:
-        if normalized.startswith(prefix):
-            normalized = normalized[len(prefix) :]
+    # Remove common prefixes based on city
+    if target_city == "amsterdam":
+        for prefix in ["amsterdam ", "amsterdam-"]:
+            if normalized.startswith(prefix):
+                normalized = normalized[len(prefix):]
+    elif target_city == "helsinki":
+        for prefix in ["helsinki ", "helsinki-", "espoo ", "espoo-"]:
+            if normalized.startswith(prefix):
+                normalized = normalized[len(prefix):]
     return normalized
 
 
-def identify_neighborhood(
+def identify_neighborhood_amsterdam(
     address: str = None,
-    city: str = None,
+    city_field: str = None,
     neighborhood: str = None,
     postal_code: str = None,
 ) -> Optional[str]:
     """
-    Identify the neighborhood from address components.
+    Identify the Amsterdam neighborhood from address components.
 
     Returns the normalized neighborhood key or None if not identified.
     """
     # Check for non-Amsterdam municipalities first (by city name)
-    if city:
-        city_lower = city.lower().strip()
+    if city_field:
+        city_lower = city_field.lower().strip()
         # Direct municipality matches
         non_amsterdam_cities = [
             "amstelveen", "diemen", "duivendrecht", "ouder-amstel",
@@ -440,10 +734,16 @@ def identify_neighborhood(
     search_parts = []
     if neighborhood:
         search_parts.append(neighborhood.lower())
-    if city:
-        search_parts.append(city.lower())
+    if city_field:
+        search_parts.append(city_field.lower())
     if address:
-        search_parts.append(address.lower())
+        # Handle address as dict (from geocoding) or string
+        if isinstance(address, dict):
+            # Extract string parts from the address dict
+            addr_parts = [str(v) for v in address.values() if v]
+            search_parts.append(" ".join(addr_parts).lower())
+        else:
+            search_parts.append(address.lower())
 
     search_text = " ".join(search_parts)
 
@@ -532,34 +832,202 @@ def identify_neighborhood(
     return None
 
 
-def get_neighborhood_scores(
+def identify_neighborhood_helsinki(
     address: str = None,
-    city: str = None,
+    city_field: str = None,
     neighborhood: str = None,
     postal_code: str = None,
+) -> Optional[str]:
+    """
+    Identify the Helsinki/Espoo neighborhood from address components.
+
+    Returns the normalized neighborhood key or None if not identified.
+    """
+    # Build search text from all available fields
+    search_parts = []
+    if neighborhood:
+        search_parts.append(neighborhood.lower())
+    if city_field:
+        search_parts.append(city_field.lower())
+    if address:
+        # Handle address as dict (from geocoding) or string
+        if isinstance(address, dict):
+            addr_parts = [str(v) for v in address.values() if v]
+            search_parts.append(" ".join(addr_parts).lower())
+        else:
+            search_parts.append(address.lower())
+
+    search_text = " ".join(search_parts)
+
+    # Try direct match in Helsinki aliases first
+    for alias, key in HELSINKI_NEIGHBORHOOD_ALIASES.items():
+        if alias in search_text:
+            return key
+
+    # Try direct neighborhood name match
+    for key in HELSINKI_NEIGHBORHOOD_DATA.keys():
+        # Check if the neighborhood name appears in the text
+        if key in search_text or key.replace("-", " ") in search_text:
+            return key
+
+    # Try Finnish postal code heuristic
+    # Helsinki: 00100-00990
+    # Espoo: 02100-02980
+    if postal_code:
+        postal_clean = postal_code.replace(" ", "").upper()
+        postal_match = re.match(r"(\d{5})", postal_clean)
+        if postal_match:
+            postal_num = int(postal_match.group(1))
+
+            # Helsinki central (00100-00180)
+            if 100 <= postal_num <= 120:
+                return "kamppi"
+            elif 121 <= postal_num <= 140:
+                return "punavuori"
+            elif 141 <= postal_num <= 160:
+                return "ullanlinna"
+            elif 161 <= postal_num <= 180:
+                return "kruununhaka"
+
+            # Töölö area (00250-00270)
+            elif 250 <= postal_num <= 270:
+                return "töölö"
+
+            # Kallio area (00500-00560)
+            elif 500 <= postal_num <= 560:
+                return "kallio"
+
+            # Pasila area (00520-00540)
+            elif 520 <= postal_num <= 540:
+                return "pasila"
+
+            # Sörnäinen/Vallila (00510, 00550)
+            elif 510 <= postal_num <= 515:
+                return "sörnäinen"
+            elif 550 <= postal_num <= 560:
+                return "vallila"
+
+            # Eastern Helsinki
+            elif 570 <= postal_num <= 590:
+                return "arabia"
+            elif 800 <= postal_num <= 830:
+                return "herttoniemi"
+            elif 840 <= postal_num <= 850:
+                return "kulosaari"
+            elif 900 <= postal_num <= 990:
+                return "vuosaari"
+            elif 940 <= postal_num <= 970:
+                return "kontula"
+
+            # Northern Helsinki
+            elif 600 <= postal_num <= 650:
+                return "käpylä"
+            elif 660 <= postal_num <= 690:
+                return "oulunkylä"
+            elif 700 <= postal_num <= 770:
+                return "malmi"
+
+            # Western Helsinki
+            elif 330 <= postal_num <= 350:
+                return "munkkiniemi"
+            elif 200 <= postal_num <= 220:
+                return "lauttasaari"
+            elif 180 <= postal_num <= 185:
+                return "jätkäsaari"
+            elif 186 <= postal_num <= 190:
+                return "ruoholahti"
+
+            # Espoo (02xxx)
+            elif 2100 <= postal_num <= 2140:
+                return "tapiola"
+            elif 2150 <= postal_num <= 2159:
+                return "otaniemi"
+            elif 2160 <= postal_num <= 2175:
+                return "keilaniemi"
+            elif 2600 <= postal_num <= 2650:
+                return "espoo center"
+            elif 2200 <= postal_num <= 2250:
+                return "matinkylä"
+            elif 2320 <= postal_num <= 2380:
+                return "leppävaara"
+
+    return None
+
+
+def identify_neighborhood(
+    address: str = None,
+    city_field: str = None,
+    neighborhood: str = None,
+    postal_code: str = None,
+    target_city: str = "amsterdam",
+) -> Optional[str]:
+    """
+    Identify the neighborhood from address components.
+
+    Args:
+        address: Street address
+        city_field: City name from listing
+        neighborhood: Neighborhood name from listing
+        postal_code: Postal code
+        target_city: Which city's neighborhoods to search (amsterdam, helsinki)
+
+    Returns the normalized neighborhood key or None if not identified.
+    """
+    target_city = (target_city or "amsterdam").lower()
+
+    if target_city == "helsinki":
+        return identify_neighborhood_helsinki(address, city_field, neighborhood, postal_code)
+    else:
+        return identify_neighborhood_amsterdam(address, city_field, neighborhood, postal_code)
+
+
+def get_neighborhood_scores(
+    address: str = None,
+    city_field: str = None,
+    neighborhood: str = None,
+    postal_code: str = None,
+    target_city: str = "amsterdam",
 ) -> Optional[NeighborhoodScores]:
     """
     Get neighborhood scores for a location.
 
+    Args:
+        address: Street address
+        city_field: City name from listing
+        neighborhood: Neighborhood name from listing
+        postal_code: Postal code
+        target_city: Which city's neighborhoods to search (amsterdam, helsinki)
+
     Returns NeighborhoodScores if the neighborhood can be identified, None otherwise.
     """
-    key = identify_neighborhood(address, city, neighborhood, postal_code)
-    if key and key in NEIGHBORHOOD_DATA:
-        return NEIGHBORHOOD_DATA[key]
+    target_city = (target_city or "amsterdam").lower()
+    key = identify_neighborhood(address, city_field, neighborhood, postal_code, target_city)
+
+    if key:
+        neighborhood_data = CITY_NEIGHBORHOOD_DATA.get(target_city, NEIGHBORHOOD_DATA)
+        if key in neighborhood_data:
+            return neighborhood_data[key]
     return None
 
 
-def enrich_listing_with_neighborhood(listing: dict) -> dict:
+def enrich_listing_with_neighborhood(listing: dict, city: str = None) -> dict:
     """
     Add neighborhood quality scores to a listing.
 
+    Args:
+        listing: The listing dict to enrich
+        city: Target city for neighborhood lookup (amsterdam, helsinki)
+
     Modifies the listing dict in place and returns it.
     """
+    target_city = (city or "amsterdam").lower()
+
     scores = get_neighborhood_scores(
         address=listing.get("address"),
-        city=listing.get("city"),
+        city_field=listing.get("city"),
         neighborhood=listing.get("neighborhood"),
         postal_code=listing.get("postal_code"),
+        target_city=target_city,
     )
 
     if scores:

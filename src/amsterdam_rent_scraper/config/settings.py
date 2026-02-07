@@ -1,18 +1,95 @@
 """Configuration for scraping targets and search parameters."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 
-# === WORK LOCATION ===
-WORK_ADDRESS = "Stroombaan 4, 1181 VX Amstelveen, Netherlands"
-WORK_LAT = 52.3027  # Corrected coordinates for Stroombaan 4
-WORK_LNG = 4.8557
+# === CITY CONFIGURATION ===
+@dataclass
+class CityConfig:
+    """Configuration for a city."""
 
-# === SEARCH PARAMETERS ===
-MIN_PRICE = 1000
-MAX_PRICE = 2000
-CURRENCY = "EUR"
+    name: str
+    country: str
+    work_address: str
+    work_lat: float
+    work_lng: float
+    min_price: int
+    max_price: int
+    min_surface: Optional[int] = None
+    min_rooms: Optional[int] = None
+    currency: str = "EUR"
+    # Map display settings
+    map_center_lat: Optional[float] = None
+    map_center_lng: Optional[float] = None
+    map_default_zoom: int = 12
+    # Transit routing API to use (transitous, hsl, etc.)
+    transit_api: str = "transitous"
+    # List of enabled scraper names for this city
+    enabled_scrapers: list[str] = field(default_factory=list)
+
+
+# City configurations
+CITIES: dict[str, CityConfig] = {
+    "amsterdam": CityConfig(
+        name="Amsterdam",
+        country="Netherlands",
+        work_address="Stroombaan 4, 1181 VX Amstelveen, Netherlands",
+        work_lat=52.3027,
+        work_lng=4.8557,
+        min_price=1000,
+        max_price=2000,
+        currency="EUR",
+        map_center_lat=52.3676,
+        map_center_lng=4.9041,
+        map_default_zoom=12,
+        transit_api="transitous",
+        enabled_scrapers=[
+            "pararius", "huurwoningen", "123wonen", "huurstunt",
+            "kamernet", "iamexpat", "rotsvast", "expathousingnetwork", "huure"
+        ],
+    ),
+    "helsinki": CityConfig(
+        name="Helsinki",
+        country="Finland",
+        work_address="Keilasatama 5, 02150 Espoo, Finland",
+        work_lat=60.1756,
+        work_lng=24.8271,
+        min_price=800,
+        max_price=1800,
+        min_surface=40,
+        min_rooms=2,
+        currency="EUR",
+        map_center_lat=60.1699,
+        map_center_lng=24.9384,
+        map_default_zoom=11,
+        transit_api="hsl",  # Helsinki Region Transport (HSL) Digitransit API
+        enabled_scrapers=[],  # Will add scrapers as they're implemented
+    ),
+}
+
+# Default city
+DEFAULT_CITY = "amsterdam"
+
+
+def get_city_config(city: str = None) -> CityConfig:
+    """Get configuration for a city."""
+    city = (city or DEFAULT_CITY).lower()
+    if city not in CITIES:
+        raise ValueError(f"Unknown city: {city}. Available: {list(CITIES.keys())}")
+    return CITIES[city]
+
+
+# === LEGACY COMPATIBILITY (for existing code) ===
+# These will be deprecated - use get_city_config() instead
+_default_city = get_city_config(DEFAULT_CITY)
+WORK_ADDRESS = _default_city.work_address
+WORK_LAT = _default_city.work_lat
+WORK_LNG = _default_city.work_lng
+MIN_PRICE = _default_city.min_price
+MAX_PRICE = _default_city.max_price
+CURRENCY = _default_city.currency
 
 # === SCRAPING CONFIG ===
 REQUEST_DELAY_MIN = 2.0  # seconds
@@ -42,13 +119,18 @@ class RentalSite:
     base_url: str
     search_url_template: str
     scraper_class: str  # dotted path to scraper class
+    city: str = "amsterdam"  # Which city this site is for
     enabled: bool = True
     needs_js: bool = False  # requires Selenium/Playwright
     notes: str = ""
 
 
-# === ALL DUTCH RENTAL SITES ===
+# === ALL RENTAL SITES ===
+# Sites are organized by city
 RENTAL_SITES: list[RentalSite] = [
+    # =====================
+    # AMSTERDAM (Netherlands)
+    # =====================
     RentalSite(
         name="funda",
         base_url="https://www.funda.nl",
@@ -187,13 +269,47 @@ RENTAL_SITES: list[RentalSite] = [
         needs_js=False,
         notes="Dutch rental aggregator with server-rendered content. Permissive robots.txt.",
     ),
+    # =====================
+    # HELSINKI (Finland)
+    # =====================
+    # Helsinki scrapers will be added here as they're implemented
+    # Key sites to implement:
+    # - oikotie.fi (largest Finnish housing site)
+    # - vuokraovi.com (major Finnish rental portal)
+    # - etuovi.com (Finnish housing marketplace)
+    # - blok.ai (modern Finnish rental platform)
+    # - lumo.fi (Kojamo/Lumo rental apartments)
+    # - sato.fi (SATO rental apartments)
 ]
 
 
-def get_enabled_sites(filter_names: list[str] | None = None) -> list[RentalSite]:
-    """Return enabled sites, optionally filtered by name."""
-    sites = [s for s in RENTAL_SITES if s.enabled]
+def get_enabled_sites(
+    filter_names: list[str] | None = None, city: str = None
+) -> list[RentalSite]:
+    """Return enabled sites, optionally filtered by name and city."""
+    city = (city or DEFAULT_CITY).lower()
+    city_config = get_city_config(city)
+
+    # Filter by city first
+    sites = [s for s in RENTAL_SITES if s.city.lower() == city]
+
+    # Then filter by enabled status (based on city config's enabled_scrapers list)
+    if city_config.enabled_scrapers:
+        enabled_names = {n.lower() for n in city_config.enabled_scrapers}
+        sites = [s for s in sites if s.name.lower() in enabled_names]
+    else:
+        # If no explicit enabled list, use the site's own enabled flag
+        sites = [s for s in sites if s.enabled]
+
+    # Apply name filter if provided
     if filter_names:
         names = {n.lower() for n in filter_names}
         sites = [s for s in sites if s.name.lower() in names]
+
     return sites
+
+
+def get_all_sites_for_city(city: str = None) -> list[RentalSite]:
+    """Return all sites for a city (including disabled ones)."""
+    city = (city or DEFAULT_CITY).lower()
+    return [s for s in RENTAL_SITES if s.city.lower() == city]
