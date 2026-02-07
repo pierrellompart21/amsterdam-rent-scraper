@@ -65,7 +65,7 @@ CITIES: dict[str, CityConfig] = {
         map_center_lng=24.9384,
         map_default_zoom=11,
         transit_api="hsl",  # Helsinki Region Transport (HSL) Digitransit API
-        enabled_scrapers=[],  # Will add scrapers as they're implemented
+        enabled_scrapers=["sato"],  # Finnish rental scrapers
     ),
 }
 
@@ -272,14 +272,32 @@ RENTAL_SITES: list[RentalSite] = [
     # =====================
     # HELSINKI (Finland)
     # =====================
-    # Helsinki scrapers will be added here as they're implemented
-    # Key sites to implement:
-    # - oikotie.fi (largest Finnish housing site)
-    # - vuokraovi.com (major Finnish rental portal)
+    RentalSite(
+        name="vuokraovi",
+        base_url="https://www.vuokraovi.com",
+        search_url_template=(
+            "https://www.vuokraovi.com/vuokra-asunnot"
+            "?locale=en&rentMin={min_price}&rentMax={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.vuokraovi.VuokraoviScraper",
+        city="helsinki",
+        enabled=False,  # Disabled: blocks headless browsers
+        needs_js=True,
+        notes="Major Finnish rental portal. Blocks headless browsers.",
+    ),
+    RentalSite(
+        name="sato",
+        base_url="https://www.sato.fi",
+        search_url_template="https://www.sato.fi/vuokra-asunnot",
+        scraper_class="amsterdam_rent_scraper.scrapers.sato.SatoScraper",
+        city="helsinki",
+        needs_js=True,
+        notes="Major Finnish rental company. Next.js site, works with Playwright.",
+    ),
+    # Additional Helsinki sites to implement:
+    # - oikotie.fi (largest Finnish housing site - complex JS, requires auth?)
     # - etuovi.com (Finnish housing marketplace)
-    # - blok.ai (modern Finnish rental platform)
     # - lumo.fi (Kojamo/Lumo rental apartments)
-    # - sato.fi (SATO rental apartments)
 ]
 
 
