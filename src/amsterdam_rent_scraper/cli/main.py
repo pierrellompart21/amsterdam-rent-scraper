@@ -7,7 +7,7 @@ from typing import Optional
 import typer
 from rich.console import Console
 
-from amsterdam_rent_scraper.config.settings import CITIES, DEFAULT_CITY, get_city_config
+from amsterdam_rent_scraper.config.settings import CITIES, DEFAULT_CITY, STEALTH_SITES, get_city_config
 
 app = typer.Typer(
     name="rent-scraper", help="Multi-city rental listing scraper + LLM extraction"
@@ -67,15 +67,20 @@ def scrape(
     resume: bool = typer.Option(
         False, "--resume", "-r", help="Resume from last checkpoint if available"
     ),
+    stealth: bool = typer.Option(
+        False, "--stealth", help="Use stealth mode for blocked sites (funda, vuokraovi)"
+    ),
 ):
     """
     Scrape rental websites for apartment listings.
 
     Examples:
         rent-scraper scrape --city amsterdam --test-run
-        rent-scraper scrape --city helsinki --sites oikotie,vuokraovi
+        rent-scraper scrape --city helsinki --sites oikotie,lumo
         rent-scraper scrape -c amsterdam -t --min-price 1200 --max-price 1800
         rent-scraper scrape --resume  # Resume a failed run
+        rent-scraper scrape --city amsterdam --stealth --sites funda  # Stealth mode for blocked sites
+        rent-scraper scrape --city helsinki --stealth --sites vuokraovi  # Stealth mode for vuokraovi
     """
     from amsterdam_rent_scraper.pipeline import run_pipeline
 
@@ -114,6 +119,13 @@ def scrape(
         console.print(f"   Max listings per site: {max_listings}")
     if resume:
         console.print(f"   [green]Resume mode: enabled[/]")
+    if stealth:
+        # Check which stealth sites are available for this city
+        available_stealth = [s for s, cfg in STEALTH_SITES.items() if cfg["city"] == city.lower()]
+        if available_stealth:
+            console.print(f"   [magenta]Stealth mode: enabled (available: {', '.join(available_stealth)})[/]")
+        else:
+            console.print(f"   [yellow]Stealth mode: no stealth scrapers available for {city}[/]")
 
     if apartments_only:
         console.print("   Filter: apartments only (no rooms/shared)")
@@ -135,6 +147,7 @@ def scrape(
         min_surface=min_surface,
         min_rooms=min_rooms,
         resume=resume,
+        stealth=stealth,
     )
 
 
