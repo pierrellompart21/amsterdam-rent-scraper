@@ -53,6 +53,22 @@ VIEWPORT_SIZES = [
 ]
 
 
+def _find_chrome() -> str | None:
+    """Find Chrome executable path."""
+    if not UNDETECTED_AVAILABLE:
+        return None
+    try:
+        from undetected_chromedriver import find_chrome_executable
+        return find_chrome_executable()
+    except Exception:
+        return None
+
+
+def is_chrome_installed() -> bool:
+    """Check if Chrome browser is installed and can be found."""
+    return _find_chrome() is not None
+
+
 def is_stealth_available() -> bool:
     """Check if stealth packages are installed."""
     return UNDETECTED_AVAILABLE and SELENIUM_AVAILABLE
@@ -107,6 +123,16 @@ class StealthBrowser:
 
     def _start(self):
         """Start the undetected Chrome browser."""
+        # Check if Chrome is installed before attempting to start
+        chrome_path = _find_chrome()
+        if chrome_path is None:
+            raise RuntimeError(
+                "Chrome browser not found. Stealth mode requires Google Chrome to be installed.\n"
+                "On macOS: brew install --cask google-chrome\n"
+                "On Ubuntu: sudo apt install google-chrome-stable\n"
+                "On Windows: Download from https://www.google.com/chrome/"
+            )
+
         options = uc.ChromeOptions()
 
         # Set viewport size
@@ -128,9 +154,10 @@ class StealthBrowser:
             options.add_argument("--headless=new")
 
         # Start undetected Chrome
+        # Note: headless is set via options argument (--headless=new), not the headless parameter
+        # Passing headless=True to uc.Chrome in newer versions can cause "Binary Location Must be a String" errors
         self.driver = uc.Chrome(
             options=options,
-            headless=self.headless,
             use_subprocess=True,
         )
 

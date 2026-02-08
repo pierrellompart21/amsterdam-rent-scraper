@@ -1,45 +1,37 @@
 # Multi-City Rent Scraper - Task Notes
 
-## Current State: STEALTH MODE IMPLEMENTED
+## Current State: STEALTH MODE COMPLETE
 
-Stealth mode has been added as an opt-in feature for bypassing bot detection on blocked sites.
+Stealth mode implementation is complete. The feature requires Google Chrome to be installed.
 
-### Stealth Mode Feature (NEW)
+### Stealth Mode Usage
 
-Added `--stealth` flag to the CLI for scraping sites that block headless browsers.
-
-**To use stealth mode:**
 ```bash
-# Install stealth package first (not installed by default)
+# Install stealth package (if not already installed)
 pip install undetected-chromedriver
 
-# Then use --stealth flag
+# IMPORTANT: Stealth mode requires Google Chrome browser to be installed
+# On macOS: brew install --cask google-chrome
+# On Ubuntu: sudo apt install google-chrome-stable
+
+# Use --stealth flag
 rent-scraper scrape --city amsterdam --stealth --sites funda --skip-llm --max-listings 5
 rent-scraper scrape --city helsinki --stealth --sites vuokraovi --skip-llm --max-listings 5
 ```
 
-**New files created:**
+### Implementation Files
 - `src/amsterdam_rent_scraper/utils/stealth_browser.py` - StealthBrowser wrapper for undetected-chromedriver
 - `src/amsterdam_rent_scraper/scrapers/stealth_base.py` - StealthBaseScraper base class
 - `src/amsterdam_rent_scraper/scrapers/funda_stealth.py` - Stealth scraper for funda.nl
 - `src/amsterdam_rent_scraper/scrapers/vuokraovi_stealth.py` - Stealth scraper for vuokraovi.com
 
-**Configuration in settings.py:**
-- `STEALTH_SITES` dict maps site names to their stealth scraper classes
-- Currently supports: funda (amsterdam), vuokraovi (helsinki)
-
-**Testing status:**
+### Testing Status
 - ✅ All modules import correctly
-- ✅ Normal scraping still works without --stealth
-- ✅ CLI shows --stealth option with helpful messages
-- ⚠️ Actual stealth scraping NOT tested (requires `pip install undetected-chromedriver`)
+- ✅ Normal scraping works without --stealth flag
+- ✅ CLI shows helpful error message if Chrome is not installed
+- ⚠️ Actual bot-detection bypass NOT tested (requires Chrome installed on test machine)
 
-### Next Steps (if continuing this feature)
-1. Install undetected-chromedriver and test actual stealth scraping
-2. Verify it can bypass funda.nl and vuokraovi.com bot detection
-3. Fine-tune delays and human-like behavior if needed
-
-### Regular Scrapers (still working)
+### Regular Scrapers (unchanged)
 - Amsterdam (9): pararius, huurwoningen, wonen123, huurstunt, kamernet, iamexpat, rotsvast, expathousingnetwork, huure
 - Helsinki (8): sato, oikotie, lumo, ta, retta, avara, keva, ovv
 
@@ -49,7 +41,7 @@ rent-scraper scrape --city helsinki --stealth --sites vuokraovi --skip-llm --max
 rent-scraper scrape --city amsterdam --skip-llm
 rent-scraper scrape --city helsinki --skip-llm
 
-# Stealth mode (requires pip install undetected-chromedriver)
+# Stealth mode (requires Chrome + pip install undetected-chromedriver)
 rent-scraper scrape --city amsterdam --stealth --sites funda --skip-llm
 rent-scraper scrape --city helsinki --stealth --sites vuokraovi --skip-llm
 
