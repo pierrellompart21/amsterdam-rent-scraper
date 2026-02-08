@@ -40,6 +40,7 @@ from amsterdam_rent_scraper.config.settings import (
 )
 from amsterdam_rent_scraper.utils.stealth_browser import (
     StealthBrowser,
+    is_chrome_installed,
     is_stealth_available,
 )
 
