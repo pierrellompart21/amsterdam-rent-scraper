@@ -19,6 +19,7 @@ from rich.progress import (
 from amsterdam_rent_scraper.config.settings import (
     DEFAULT_CITY,
     OUTPUT_DIR,
+    STEALTH_SITES,
     get_city_config,
     get_enabled_sites,
 )
@@ -145,6 +146,7 @@ def run_pipeline(
     min_surface: Optional[int] = None,
     min_rooms: Optional[int] = None,
     resume: bool = False,
+    stealth: bool = False,
 ) -> list[dict]:
     """
     Run the full scraping pipeline.
@@ -181,6 +183,7 @@ def run_pipeline(
         "apartments_only": apartments_only,
         "min_surface": min_surface,
         "min_rooms": min_rooms,
+        "stealth": stealth,
     }
 
     # Check for existing checkpoint
@@ -205,7 +208,19 @@ def run_pipeline(
             console.print("[yellow]No checkpoint found, starting fresh[/]")
 
     sites = get_enabled_sites(site_filter, city=city)
-    if not sites and start_stage == STAGE_SCRAPING:
+
+    # Build list of stealth sites to scrape (if stealth mode enabled)
+    stealth_sites_to_scrape = []
+    if stealth and site_filter:
+        # Check which requested sites have stealth scrapers
+        for site_name in site_filter:
+            site_lower = site_name.lower()
+            if site_lower in STEALTH_SITES:
+                stealth_cfg = STEALTH_SITES[site_lower]
+                if stealth_cfg["city"] == city_lower:
+                    stealth_sites_to_scrape.append((site_lower, stealth_cfg))
+
+    if not sites and not stealth_sites_to_scrape and start_stage == STAGE_SCRAPING:
         console.print("[red]No sites to scrape. Check your --sites filter.[/]")
         return []
 
@@ -215,13 +230,20 @@ def run_pipeline(
             console.print(f"  Mode: CUSTOM ({max_listings_per_site} listings/site)")
         else:
             console.print(f"  Mode: {'TEST (3 listings/site)' if test_mode else 'FULL'}")
-        console.print(f"  Sites: {', '.join(s.name for s in sites)}")
+
+        # Show which sites we're scraping
+        regular_site_names = [s.name for s in sites]
+        stealth_site_names = [s[0] for s in stealth_sites_to_scrape]
+        if regular_site_names:
+            console.print(f"  Sites: {', '.join(regular_site_names)}")
+        if stealth_site_names:
+            console.print(f"  [magenta]Stealth sites: {', '.join(stealth_site_names)}[/]")
         console.print(f"  Price range: EUR {min_price} - {max_price}")
         console.print("")
 
         all_listings = []
 
-        # Run scrapers
+        # Run regular scrapers
         for site in sites:
             console.print(f"\n[bold cyan]>>> {site.name.upper()}[/]")
 
@@ -239,6 +261,28 @@ def run_pipeline(
                 console.print(f"[yellow]Scraper not implemented yet: {site.name} ({e})[/]")
             except Exception as e:
                 console.print(f"[red]Error scraping {site.name}: {e}[/]")
+
+        # Run stealth scrapers (if stealth mode is enabled)
+        for site_name, stealth_cfg in stealth_sites_to_scrape:
+            console.print(f"\n[bold magenta]>>> {site_name.upper()} (STEALTH)[/]")
+
+            try:
+                scraper_class = load_scraper_class(stealth_cfg["stealth_class"])
+                scraper = scraper_class(
+                    min_price=min_price,
+                    max_price=max_price,
+                    test_mode=test_mode,
+                    max_listings=max_listings_per_site,
+                )
+                listings = scraper.scrape_all()
+                all_listings.extend(listings)
+            except ImportError as e:
+                console.print(
+                    f"[yellow]Stealth scraper unavailable: {site_name}. "
+                    f"Install with: pip install undetected-chromedriver ({e})[/]"
+                )
+            except Exception as e:
+                console.print(f"[red]Error in stealth scraper {site_name}: {e}[/]")
 
         if not all_listings:
             console.print("[yellow]No listings scraped.[/]")

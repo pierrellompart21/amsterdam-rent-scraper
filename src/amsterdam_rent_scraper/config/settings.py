@@ -56,8 +56,8 @@ CITIES: dict[str, CityConfig] = {
         work_address="Keilasatama 5, 02150 Espoo, Finland",
         work_lat=60.1756,
         work_lng=24.8271,
-        min_price=800,
-        max_price=1800,
+        min_price=1000,
+        max_price=2000,
         min_surface=40,
         min_rooms=2,
         currency="EUR",
@@ -96,6 +96,26 @@ REQUEST_DELAY_MIN = 2.0  # seconds
 REQUEST_DELAY_MAX = 5.0
 MAX_RETRIES = 3
 TIMEOUT = 30
+
+# === STEALTH MODE CONFIG ===
+# Sites that have stealth scrapers available (only used with --stealth flag)
+# These sites block standard headless browsers and need special handling
+STEALTH_SITES = {
+    "funda": {
+        "stealth_class": "amsterdam_rent_scraper.scrapers.funda_stealth.FundaStealthScraper",
+        "city": "amsterdam",
+        "notes": "Aggressive anti-bot, requires undetected-chromedriver",
+    },
+    "vuokraovi": {
+        "stealth_class": "amsterdam_rent_scraper.scrapers.vuokraovi_stealth.VuokraoviStealthScraper",
+        "city": "helsinki",
+        "notes": "Blocks headless browsers, requires undetected-chromedriver",
+    },
+}
+
+# Stealth-specific delay settings (more conservative)
+STEALTH_DELAY_MIN = 4.0  # seconds
+STEALTH_DELAY_MAX = 8.0
 
 # === LLM CONFIG ===
 OLLAMA_BASE_URL = "http://localhost:11434"
