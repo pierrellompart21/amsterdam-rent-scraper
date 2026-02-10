@@ -85,7 +85,7 @@ CITIES: dict[str, CityConfig] = {
         enabled_scrapers=[
             "blocket", "qasa", "samtrygg", "homeq", "bostadsportalen",
             "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia",
-            "heimstaden", "rentumo"
+            "heimstaden", "rentumo", "bostadsportal"
         ],
     ),
 }
@@ -540,6 +540,18 @@ RENTAL_SITES: list[RentalSite] = [
         city="stockholm",
         needs_js=True,
         notes="Swedish rental aggregator with 1300+ Stockholm listings. Server-rendered with Turbo/Rails.",
+    ),
+    RentalSite(
+        name="bostadsportal",
+        base_url="https://www.bostadsportal.se",
+        search_url_template=(
+            "https://www.bostadsportal.se/hyra-lägenhet/stockholm/"
+            "?min_rent={min_price}&max_rent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostadsportal.BostadsportalScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Swedish rental marketplace with 10,000+ listings. Server-rendered with JSON-LD structured data.",
     ),
 ]
 
