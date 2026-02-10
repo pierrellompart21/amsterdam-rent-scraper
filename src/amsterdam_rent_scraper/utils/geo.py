@@ -74,6 +74,7 @@ def geocode_address(address: str, city: str = None) -> Optional[Tuple[float, flo
         country_abbrevs = {
             "netherlands": ["nl", "nederland"],
             "finland": ["fi", "suomi"],
+            "sweden": ["se", "sverige"],
         }
         abbrevs = country_abbrevs.get(country_lower, [])
         if not any(abbrev in address.lower() for abbrev in abbrevs):

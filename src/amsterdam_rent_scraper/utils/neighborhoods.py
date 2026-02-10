@@ -590,10 +590,253 @@ HELSINKI_NEIGHBORHOOD_DATA: dict[str, NeighborhoodScores] = {
     ),
 }
 
+# === STOCKHOLM (Sweden) district ratings ===
+# Based on livability data, expat guides, and local reputation
+STOCKHOLM_NEIGHBORHOOD_DATA: dict[str, NeighborhoodScores] = {
+    # === Central Stockholm (Innerstaden) ===
+    "norrmalm": NeighborhoodScores(
+        name="Norrmalm",
+        safety=7,  # City center, some petty crime
+        green_space=5,  # Urban, Kungsträdgården nearby
+        amenities=10,  # Major shopping (Drottninggatan, NK)
+        restaurants=9,  # Great dining scene
+        family_friendly=5,  # Busy commercial area
+        expat_friendly=10,  # Very international
+    ),
+    "östermalm": NeighborhoodScores(
+        name="Östermalm",
+        safety=9,  # Upscale, very safe
+        green_space=7,  # Humlegården, near Djurgården
+        amenities=9,  # High-end shops
+        restaurants=10,  # Top restaurants
+        family_friendly=8,  # Wealthy families
+        expat_friendly=10,  # Many expats
+    ),
+    "södermalm": NeighborhoodScores(
+        name="Södermalm",
+        safety=8,  # Trendy, generally safe
+        green_space=6,  # Tantolunden, Vitabergsparken
+        amenities=9,  # Shops, vintage, SoFo district
+        restaurants=10,  # Hipster food scene
+        family_friendly=6,  # More young adults
+        expat_friendly=9,  # Popular with expats
+    ),
+    "vasastan": NeighborhoodScores(
+        name="Vasastan",
+        safety=9,  # Quiet, residential
+        green_space=6,  # Vasaparken
+        amenities=8,  # Good local shops
+        restaurants=8,  # Nice cafes, restaurants
+        family_friendly=9,  # Family-oriented
+        expat_friendly=8,  # Growing expat community
+    ),
+    "kungsholmen": NeighborhoodScores(
+        name="Kungsholmen",
+        safety=9,  # Safe island community
+        green_space=8,  # Rålambshovsparken, waterfront
+        amenities=8,  # Good local shops
+        restaurants=7,  # Nice local scene
+        family_friendly=9,  # Very family-friendly
+        expat_friendly=8,
+    ),
+    "gamla stan": NeighborhoodScores(
+        name="Gamla Stan",
+        safety=7,  # Touristy, pickpockets
+        green_space=2,  # Historic, no parks
+        amenities=7,  # Tourist shops
+        restaurants=7,  # Tourist restaurants
+        family_friendly=5,  # Small spaces, touristy
+        expat_friendly=8,  # Charming, historic
+    ),
+    "djurgården": NeighborhoodScores(
+        name="Djurgården",
+        safety=9,  # Park island, very safe
+        green_space=10,  # Royal park, nature
+        amenities=5,  # Museums, but limited shops
+        restaurants=5,  # Some cafes
+        family_friendly=9,  # Great for families
+        expat_friendly=7,  # Limited housing
+    ),
+    # === Southern Stockholm ===
+    "hammarby sjöstad": NeighborhoodScores(
+        name="Hammarby Sjöstad",
+        safety=9,  # Modern, eco-district
+        green_space=8,  # Waterfront, parks
+        amenities=7,  # Growing retail
+        restaurants=6,  # Developing
+        family_friendly=9,  # Designed for families
+        expat_friendly=8,  # Modern, international
+    ),
+    "gärdet": NeighborhoodScores(
+        name="Gärdet",
+        safety=9,
+        green_space=9,  # Large park area
+        amenities=6,
+        restaurants=5,
+        family_friendly=9,
+        expat_friendly=7,
+    ),
+    "hjorthagen": NeighborhoodScores(
+        name="Hjorthagen",
+        safety=8,  # Developing area
+        green_space=8,  # Near Nationalstadsparken
+        amenities=6,
+        restaurants=5,
+        family_friendly=8,
+        expat_friendly=7,
+    ),
+    "liljeholmen": NeighborhoodScores(
+        name="Liljeholmen",
+        safety=8,
+        green_space=6,  # Near Årstaviken
+        amenities=8,  # Liljeholmstorget mall
+        restaurants=6,
+        family_friendly=8,
+        expat_friendly=7,
+    ),
+    "hornstull": NeighborhoodScores(
+        name="Hornstull",
+        safety=7,  # Some nightlife
+        green_space=5,  # Near water
+        amenities=8,  # Good shopping
+        restaurants=8,  # Trendy restaurants
+        family_friendly=6,
+        expat_friendly=8,
+    ),
+    "fridhemsplan": NeighborhoodScores(
+        name="Fridhemsplan",
+        safety=8,
+        green_space=6,
+        amenities=8,
+        restaurants=7,
+        family_friendly=7,
+        expat_friendly=8,
+    ),
+    "odenplan": NeighborhoodScores(
+        name="Odenplan",
+        safety=8,
+        green_space=6,  # Near Vasaparken
+        amenities=8,
+        restaurants=7,
+        family_friendly=7,
+        expat_friendly=8,
+    ),
+    "sankt eriksplan": NeighborhoodScores(
+        name="Sankt Eriksplan",
+        safety=8,
+        green_space=5,
+        amenities=7,
+        restaurants=7,
+        family_friendly=7,
+        expat_friendly=7,
+    ),
+    # === Nearby Municipalities within 20km ===
+    "solna": NeighborhoodScores(
+        name="Solna",
+        safety=8,
+        green_space=8,  # Hagaparken, Ulriksdal
+        amenities=9,  # Mall of Scandinavia
+        restaurants=7,
+        family_friendly=8,
+        expat_friendly=8,
+    ),
+    "sundbyberg": NeighborhoodScores(
+        name="Sundbyberg",
+        safety=7,
+        green_space=6,
+        amenities=7,
+        restaurants=6,
+        family_friendly=7,
+        expat_friendly=6,
+    ),
+    "nacka": NeighborhoodScores(
+        name="Nacka",
+        safety=8,
+        green_space=9,  # Nature reserves
+        amenities=7,
+        restaurants=6,
+        family_friendly=9,
+        expat_friendly=7,
+    ),
+    "lidingö": NeighborhoodScores(
+        name="Lidingö",
+        safety=9,  # Affluent island
+        green_space=9,
+        amenities=6,
+        restaurants=5,
+        family_friendly=9,
+        expat_friendly=8,
+    ),
+    "danderyd": NeighborhoodScores(
+        name="Danderyd",
+        safety=9,  # Wealthy suburb
+        green_space=8,
+        amenities=7,
+        restaurants=6,
+        family_friendly=9,
+        expat_friendly=8,
+    ),
+    "järfälla": NeighborhoodScores(
+        name="Järfälla",
+        safety=7,
+        green_space=8,
+        amenities=7,
+        restaurants=5,
+        family_friendly=8,
+        expat_friendly=5,
+    ),
+    "sollentuna": NeighborhoodScores(
+        name="Sollentuna",
+        safety=8,
+        green_space=8,
+        amenities=7,
+        restaurants=5,
+        family_friendly=9,
+        expat_friendly=6,
+    ),
+    "huddinge": NeighborhoodScores(
+        name="Huddinge",
+        safety=7,
+        green_space=8,  # Nature reserves
+        amenities=7,
+        restaurants=5,
+        family_friendly=8,
+        expat_friendly=5,
+    ),
+    "bromma": NeighborhoodScores(
+        name="Bromma",
+        safety=9,
+        green_space=8,
+        amenities=7,
+        restaurants=6,
+        family_friendly=9,
+        expat_friendly=8,
+    ),
+    "täby": NeighborhoodScores(
+        name="Täby",
+        safety=9,
+        green_space=8,
+        amenities=8,  # Täby Centrum
+        restaurants=6,
+        family_friendly=9,
+        expat_friendly=7,
+    ),
+    "upplands väsby": NeighborhoodScores(
+        name="Upplands Väsby",
+        safety=7,
+        green_space=7,
+        amenities=6,
+        restaurants=4,
+        family_friendly=7,
+        expat_friendly=4,
+    ),
+}
+
 # City-specific neighborhood data lookup
 CITY_NEIGHBORHOOD_DATA: dict[str, dict[str, NeighborhoodScores]] = {
     "amsterdam": NEIGHBORHOOD_DATA,
     "helsinki": HELSINKI_NEIGHBORHOOD_DATA,
+    "stockholm": STOCKHOLM_NEIGHBORHOOD_DATA,
 }
 
 # Alternative name mappings for neighborhood detection (Amsterdam)
@@ -680,10 +923,61 @@ HELSINKI_NEIGHBORHOOD_ALIASES: dict[str, str] = {
     "kaivopuisto": "ullanlinna",
 }
 
+# Alternative name mappings for Stockholm neighborhood detection
+STOCKHOLM_NEIGHBORHOOD_ALIASES: dict[str, str] = {
+    # Common abbreviations and variations
+    "söder": "södermalm",
+    "sthlm city": "norrmalm",
+    "stockholm city": "norrmalm",
+    "city": "norrmalm",
+    "t-centralen": "norrmalm",
+    "central station": "norrmalm",
+    "östermalm": "östermalm",
+    "östra station": "östermalm",
+    "karlaplan": "östermalm",
+    "stureplan": "östermalm",
+    # Södermalm variations
+    "sofo": "södermalm",
+    "medborgarplatsen": "södermalm",
+    "mariatorget": "södermalm",
+    "zinkensdamm": "södermalm",
+    "slussen": "södermalm",
+    "skanstull": "södermalm",
+    # Vasastan variations
+    "odenplan": "vasastan",
+    "st eriksplan": "sankt eriksplan",
+    "s:t eriksplan": "sankt eriksplan",
+    # Kungsholmen variations
+    "stadshuset": "kungsholmen",
+    "rådhuset": "kungsholmen",
+    "kristineberg": "kungsholmen",
+    # Gamla Stan
+    "old town": "gamla stan",
+    "riddarholmen": "gamla stan",
+    # Other areas
+    "gröndal": "liljeholmen",
+    "aspudden": "liljeholmen",
+    "midsommarkransen": "liljeholmen",
+    "telefonplan": "liljeholmen",
+    "enskede": "hammarby sjöstad",
+    "sickla": "nacka",
+    "saltsjöbaden": "nacka",
+    "stocksund": "danderyd",
+    "äppelviken": "bromma",
+    "alvik": "bromma",
+    "traneberg": "bromma",
+    "huvudsta": "solna",
+    "hagalund": "solna",
+    "haga": "solna",
+    "mall of scandinavia": "solna",
+    "friends arena": "solna",
+}
+
 # City-specific aliases
 CITY_NEIGHBORHOOD_ALIASES: dict[str, dict[str, str]] = {
     "amsterdam": NEIGHBORHOOD_ALIASES,
     "helsinki": HELSINKI_NEIGHBORHOOD_ALIASES,
+    "stockholm": STOCKHOLM_NEIGHBORHOOD_ALIASES,
 }
 
 
@@ -954,6 +1248,135 @@ def identify_neighborhood_helsinki(
     return None
 
 
+def identify_neighborhood_stockholm(
+    address: str = None,
+    city_field: str = None,
+    neighborhood: str = None,
+    postal_code: str = None,
+) -> Optional[str]:
+    """
+    Identify the Stockholm neighborhood from address components.
+
+    Returns the normalized neighborhood key or None if not identified.
+    """
+    # Check for non-Stockholm municipalities first (by city name)
+    if city_field:
+        city_lower = city_field.lower().strip()
+        # Direct municipality matches
+        stockholm_area_municipalities = [
+            "solna", "sundbyberg", "nacka", "lidingö", "danderyd",
+            "järfälla", "sollentuna", "huddinge", "bromma", "täby",
+            "upplands väsby"
+        ]
+        for muni in stockholm_area_municipalities:
+            if muni in city_lower or city_lower == muni:
+                if muni in STOCKHOLM_NEIGHBORHOOD_DATA:
+                    return muni
+
+    # Build search text from all available fields
+    search_parts = []
+    if neighborhood:
+        search_parts.append(neighborhood.lower())
+    if city_field:
+        search_parts.append(city_field.lower())
+    if address:
+        # Handle address as dict (from geocoding) or string
+        if isinstance(address, dict):
+            addr_parts = [str(v) for v in address.values() if v]
+            search_parts.append(" ".join(addr_parts).lower())
+        else:
+            search_parts.append(address.lower())
+
+    search_text = " ".join(search_parts)
+
+    # Try direct match in Stockholm aliases first
+    for alias, key in STOCKHOLM_NEIGHBORHOOD_ALIASES.items():
+        if alias in search_text:
+            return key
+
+    # Try direct neighborhood name match
+    for key in STOCKHOLM_NEIGHBORHOOD_DATA.keys():
+        # Skip municipality names (already checked above)
+        if key in ["solna", "sundbyberg", "nacka", "lidingö", "danderyd",
+                   "järfälla", "sollentuna", "huddinge", "bromma", "täby",
+                   "upplands väsby"]:
+            continue
+        # Check if the neighborhood name appears in the text
+        if key in search_text or key.replace("-", " ") in search_text:
+            return key
+
+    # Try Swedish postal code heuristic
+    # Stockholm postal codes: 100xx-199xx (SE-XXX XX format)
+    if postal_code:
+        postal_clean = postal_code.replace(" ", "").replace("-", "").upper()
+        # Remove SE prefix if present
+        if postal_clean.startswith("SE"):
+            postal_clean = postal_clean[2:]
+        postal_match = re.match(r"(\d{3})\d{2}", postal_clean)
+        if postal_match:
+            postal_prefix = int(postal_match.group(1))
+
+            # Central Stockholm (100-118)
+            if 100 <= postal_prefix <= 103:
+                return "gamla stan"
+            elif 104 <= postal_prefix <= 107:
+                return "norrmalm"
+            elif 108 <= postal_prefix <= 109:
+                return "vasastan"
+            elif 110 <= postal_prefix <= 111:
+                return "norrmalm"
+            elif 112 <= postal_prefix <= 113:
+                return "kungsholmen"
+            elif 114 <= postal_prefix <= 115:
+                return "östermalm"
+            elif 116 <= postal_prefix <= 118:
+                return "södermalm"
+            elif 119 <= postal_prefix <= 121:
+                return "södermalm"
+
+            # Southern Stockholm
+            elif 122 <= postal_prefix <= 125:
+                return "liljeholmen"
+            elif 126 <= postal_prefix <= 129:
+                return "hammarby sjöstad"
+
+            # Djurgården / Gärdet area
+            elif 115 == postal_prefix:
+                return "djurgården"
+
+            # Northern suburbs
+            elif 169 <= postal_prefix <= 171:
+                return "solna"
+            elif 172 <= postal_prefix <= 174:
+                return "sundbyberg"
+            elif 175 <= postal_prefix <= 177:
+                return "järfälla"
+            elif 182 <= postal_prefix <= 183:
+                return "danderyd"
+            elif 187 <= postal_prefix <= 188:
+                return "täby"
+            elif 194 <= postal_prefix <= 195:
+                return "upplands väsby"
+
+            # Eastern suburbs
+            elif 131 <= postal_prefix <= 133:
+                return "nacka"
+            elif 181 == postal_prefix:
+                return "lidingö"
+
+            # Western suburbs
+            elif 167 <= postal_prefix <= 168:
+                return "bromma"
+
+            # Southern suburbs
+            elif 141 <= postal_prefix <= 143:
+                return "huddinge"
+            elif 191 <= postal_prefix <= 192:
+                return "sollentuna"
+
+    return None
+
+
 def identify_neighborhood(
     address: str = None,
     city_field: str = None,
@@ -969,7 +1392,7 @@ def identify_neighborhood(
         city_field: City name from listing
         neighborhood: Neighborhood name from listing
         postal_code: Postal code
-        target_city: Which city's neighborhoods to search (amsterdam, helsinki)
+        target_city: Which city's neighborhoods to search (amsterdam, helsinki, stockholm)
 
     Returns the normalized neighborhood key or None if not identified.
     """
@@ -977,6 +1400,8 @@ def identify_neighborhood(
 
     if target_city == "helsinki":
         return identify_neighborhood_helsinki(address, city_field, neighborhood, postal_code)
+    elif target_city == "stockholm":
+        return identify_neighborhood_stockholm(address, city_field, neighborhood, postal_code)
     else:
         return identify_neighborhood_amsterdam(address, city_field, neighborhood, postal_code)
 

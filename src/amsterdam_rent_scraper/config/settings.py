@@ -67,6 +67,24 @@ CITIES: dict[str, CityConfig] = {
         transit_api="hsl",  # Helsinki Region Transport (HSL) Digitransit API
         enabled_scrapers=["sato", "oikotie", "lumo", "ta", "retta", "avara", "keva", "ovv"],  # Finnish rental scrapers
     ),
+    "stockholm": CityConfig(
+        name="Stockholm",
+        country="Sweden",
+        work_address="Vasagatan 12, 111 20 Stockholm, Sweden",
+        work_lat=59.3320,
+        work_lng=18.0590,
+        min_price=11500,  # ~1000 EUR in SEK
+        max_price=23000,  # ~2000 EUR in SEK
+        currency="SEK",
+        map_center_lat=59.3293,
+        map_center_lng=18.0686,
+        map_default_zoom=11,
+        transit_api="transitous",  # Transitous API covers Sweden
+        enabled_scrapers=[
+            "blocket", "qasa", "samtrygg", "homeq", "bostadsportalen",
+            "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia"
+        ],
+    ),
 }
 
 # Default city
@@ -380,6 +398,126 @@ RENTAL_SITES: list[RentalSite] = [
     # Additional Helsinki sites to implement:
     # - etuovi.com (Finnish housing marketplace - redirects to vuokraovi for rentals)
     # - a-kruunu.fi (affordable rentals, uses Knockout.js - complex to scrape)
+    # =====================
+    # STOCKHOLM (Sweden)
+    # =====================
+    RentalSite(
+        name="blocket",
+        base_url="https://www.blocket.se",
+        search_url_template=(
+            "https://bostad.blocket.se/p2/sv/find"
+            "?cid=20&price_min={min_price}&price_max={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.blocket.BlocketScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Sweden's largest classifieds site. React-based, requires JS rendering.",
+    ),
+    RentalSite(
+        name="qasa",
+        base_url="https://qasa.se",
+        search_url_template=(
+            "https://qasa.se/hyra/stockholm"
+            "?minRent={min_price}&maxRent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.qasa.QasaScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Modern rental platform with tenant verification. Next.js site.",
+    ),
+    RentalSite(
+        name="samtrygg",
+        base_url="https://www.samtrygg.se",
+        search_url_template=(
+            "https://www.samtrygg.se/lediga-lagenheter/stockholm"
+            "?minRent={min_price}&maxRent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.samtrygg.SamtryggScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental platform with tenant insurance. React-based site.",
+    ),
+    RentalSite(
+        name="homeq",
+        base_url="https://www.homeq.se",
+        search_url_template=(
+            "https://www.homeq.se/hyresratter/stockholm"
+            "?minRent={min_price}&maxRent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.homeq.HomeQScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Digital rental platform connecting landlords and tenants.",
+    ),
+    RentalSite(
+        name="bostadsportalen",
+        base_url="https://www.bostadsportalen.se",
+        search_url_template=(
+            "https://www.bostadsportalen.se/sok/hyresratter/stockholm"
+            "?minPrice={min_price}&maxPrice={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostadsportalen.BostadsportalenScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental listings aggregator for Sweden.",
+    ),
+    RentalSite(
+        name="hyresbostad",
+        base_url="https://www.hyresbostad.se",
+        search_url_template="https://www.hyresbostad.se/stockholm",
+        scraper_class="amsterdam_rent_scraper.scrapers.hyresbostad.HyresbostadScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental apartment listings for Stockholm region.",
+    ),
+    RentalSite(
+        name="bovision",
+        base_url="https://www.bovision.se",
+        search_url_template=(
+            "https://www.bovision.se/hyra/stockholm"
+            "?priceFrom={min_price}&priceTo={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bovision.BovisionScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Property portal with rental section. React-based site.",
+    ),
+    RentalSite(
+        name="bostad_direkt",
+        base_url="https://www.bostaddirekt.com",
+        search_url_template=(
+            "https://www.bostaddirekt.com/hyra/stockholm"
+            "?minRent={min_price}&maxRent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostad_direkt.BostadDirektScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Direct rental listings from landlords.",
+    ),
+    RentalSite(
+        name="hemavi",
+        base_url="https://hemavi.com",
+        search_url_template=(
+            "https://hemavi.com/bostader/hyresratt/stockholm"
+            "?minRent={min_price}&maxRent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.hemavi.HemaviScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental marketplace for Sweden.",
+    ),
+    RentalSite(
+        name="renthia",
+        base_url="https://renthia.com",
+        search_url_template=(
+            "https://renthia.com/sv/hyr/stockholm"
+            "?minPrice={min_price}&maxPrice={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.renthia.RenthiaScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="International-friendly rental platform for Sweden.",
+    ),
 ]
 
 
