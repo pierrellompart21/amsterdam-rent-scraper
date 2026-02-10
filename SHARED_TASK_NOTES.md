@@ -1,55 +1,53 @@
 # Multi-City Rent Scraper - Task Notes
 
-## Current State: PROJECT COMPLETE
+## Current State: Stockholm City Added
 
-Stealth mode implementation is complete and verified. All implementation tasks have been finished.
+Stockholm has been added as the third supported city. All configuration, neighborhoods, and placeholder scrapers are implemented.
 
-### Stealth Mode Usage
+### Stockholm Configuration
+- Work address: Vasagatan 12, 111 20 Stockholm, Sweden
+- Price range: 11,500 - 23,000 SEK (approximately 1,000 - 2,000 EUR)
+- Currency: SEK (converted to EUR in scrapers)
+- Transit API: transitous
 
-```bash
-# Install stealth package (if not already installed)
-pip install undetected-chromedriver
+### Stockholm Scrapers (10)
+All scrapers inherit from PlaywrightBaseScraper with Swedish locale:
+- blocket, qasa, samtrygg, homeq, bostadsportalen
+- hyresbostad, bovision, bostad_direkt, hemavi, renthia
 
-# IMPORTANT: Stealth mode requires Google Chrome browser to be installed
-# On macOS: brew install --cask google-chrome
-# On Ubuntu: sudo apt install google-chrome-stable
+**Note**: Scrapers are placeholder implementations with basic structure. They will need tuning based on actual site HTML when tested.
 
-# Use --stealth flag
-rent-scraper scrape --city amsterdam --stealth --sites funda --skip-llm --max-listings 5
-rent-scraper scrape --city helsinki --stealth --sites vuokraovi --skip-llm --max-listings 5
-```
+### Stockholm Areas (12)
+stockholm, solna, sundbyberg, nacka, lidingö, danderyd, järfälla, sollentuna, huddinge, bromma, täby, upplands väsby
 
-### Implementation Files
-- `src/amsterdam_rent_scraper/utils/stealth_browser.py` - StealthBrowser wrapper for undetected-chromedriver
-- `src/amsterdam_rent_scraper/scrapers/stealth_base.py` - StealthBaseScraper base class
-- `src/amsterdam_rent_scraper/scrapers/funda_stealth.py` - Stealth scraper for funda.nl
-- `src/amsterdam_rent_scraper/scrapers/vuokraovi_stealth.py` - Stealth scraper for vuokraovi.com
-- `src/amsterdam_rent_scraper/config/settings.py` - STEALTH_SITES configuration
-- `src/amsterdam_rent_scraper/cli/main.py` - --stealth CLI flag
-- `src/amsterdam_rent_scraper/pipeline.py` - Stealth scraper integration
-
-### Testing Status (verified 2026-02-08)
-- ✅ All modules import correctly
-- ✅ Normal scraping works without --stealth flag
-- ✅ CLI shows helpful error message if Chrome is not installed
-- ✅ undetected-chromedriver package installed (v3.5.5)
-- ⚠️ Actual bot-detection bypass NOT tested (requires Chrome installed on test machine)
-
-### Regular Scrapers (unchanged)
-- Amsterdam (9): pararius, huurwoningen, 123wonen, huurstunt, kamernet, iamexpat, rotsvast, expathousingnetwork, huure
-- Helsinki (8): sato, oikotie, lumo, ta, retta, avara, keva, ovv
+### Stockholm Neighborhoods (26)
+Central: norrmalm, östermalm, södermalm, vasastan, kungsholmen, gamla stan, djurgården
+Other: hammarby sjöstad, gärdet, hjorthagen, liljeholmen, hornstull, fridhemsplan, odenplan, sankt eriksplan
+Suburbs: solna, sundbyberg, nacka, lidingö, danderyd, järfälla, sollentuna, huddinge, bromma, täby, upplands väsby
 
 ## CLI Quick Reference
 ```bash
 # Normal scraping
 rent-scraper scrape --city amsterdam --skip-llm
 rent-scraper scrape --city helsinki --skip-llm
+rent-scraper scrape --city stockholm --skip-llm
 
 # Stealth mode (requires Chrome + pip install undetected-chromedriver)
 rent-scraper scrape --city amsterdam --stealth --sites funda --skip-llm
 rent-scraper scrape --city helsinki --stealth --sites vuokraovi --skip-llm
 
 # Database info
-rent-scraper db-info --city helsinki
-rent-scraper export --city helsinki --format html
+rent-scraper db-info --city stockholm
+rent-scraper export --city stockholm --format html
 ```
+
+## Next Steps for Stockholm
+1. Test scrapers against actual Swedish rental sites
+2. Adjust HTML selectors based on actual site structure
+3. Add stealth scrapers if sites block headless browsers
+4. Fine-tune Swedish price/room regex patterns based on real listings
+
+## Regular Scrapers Summary
+- Amsterdam (9): pararius, huurwoningen, 123wonen, huurstunt, kamernet, iamexpat, rotsvast, expathousingnetwork, huure
+- Helsinki (8): sato, oikotie, lumo, ta, retta, avara, keva, ovv
+- Stockholm (10): blocket, qasa, samtrygg, homeq, bostadsportalen, hyresbostad, bovision, bostad_direkt, hemavi, renthia
