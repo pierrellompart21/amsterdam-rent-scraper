@@ -67,6 +67,26 @@ CITIES: dict[str, CityConfig] = {
         transit_api="hsl",  # Helsinki Region Transport (HSL) Digitransit API
         enabled_scrapers=["sato", "oikotie", "lumo", "ta", "retta", "avara", "keva", "ovv"],  # Finnish rental scrapers
     ),
+    "stockholm": CityConfig(
+        name="Stockholm",
+        country="Sweden",
+        work_address="Vasagatan 12, 111 20 Stockholm, Sweden",
+        work_lat=59.3320,
+        work_lng=18.0590,
+        min_price=11500,  # ~1000 EUR in SEK
+        max_price=23000,  # ~2000 EUR in SEK
+        min_surface=40,
+        min_rooms=2,
+        currency="SEK",
+        map_center_lat=59.3293,
+        map_center_lng=18.0686,
+        map_default_zoom=11,
+        transit_api="transitous",  # Transitous works for Sweden
+        enabled_scrapers=[
+            "blocket", "qasa", "samtrygg", "homeq", "bostadsportalen",
+            "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia"
+        ],
+    ),
 }
 
 # Default city
@@ -380,6 +400,125 @@ RENTAL_SITES: list[RentalSite] = [
     # Additional Helsinki sites to implement:
     # - etuovi.com (Finnish housing marketplace - redirects to vuokraovi for rentals)
     # - a-kruunu.fi (affordable rentals, uses Knockout.js - complex to scrape)
+    # =====================
+    # STOCKHOLM (Sweden)
+    # =====================
+    RentalSite(
+        name="blocket",
+        base_url="https://www.blocket.se",
+        search_url_template=(
+            "https://www.blocket.se/annonser/stockholm/bostad/lagenheter"
+            "?cg=3020&r=11&f=p&f=c&ps={min_price}&pe={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.blocket.BlocketScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Sweden's largest classifieds site with huge rental section.",
+    ),
+    RentalSite(
+        name="qasa",
+        base_url="https://qasa.se",
+        search_url_template=(
+            "https://qasa.se/hyra/bostad/stockholm"
+            "?minMonthlyCost={min_price}&maxMonthlyCost={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.qasa.QasaScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Modern rental platform with tenant verification.",
+    ),
+    RentalSite(
+        name="samtrygg",
+        base_url="https://www.samtrygg.se",
+        search_url_template=(
+            "https://www.samtrygg.se/hyra-ut-bostad/lediga-bostader"
+            "?region=stockholm"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.samtrygg.SamtryggScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental platform with tenant insurance focus.",
+    ),
+    RentalSite(
+        name="homeq",
+        base_url="https://www.homeq.se",
+        search_url_template=(
+            "https://www.homeq.se/sok-bostad?area=stockholm"
+            "&minRent={min_price}&maxRent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.homeq.HomeQScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Digital rental platform with verified landlords.",
+    ),
+    RentalSite(
+        name="bostadsportalen",
+        base_url="https://www.bostadsportalen.se",
+        search_url_template=(
+            "https://www.bostadsportalen.se/hyresratter/stockholm"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostadsportalen.BostadsportalenScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental listings aggregator for Stockholm.",
+    ),
+    RentalSite(
+        name="hyresbostad",
+        base_url="https://www.hyresbostad.se",
+        search_url_template=(
+            "https://www.hyresbostad.se/lediga-lagenheter/stockholm"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.hyresbostad.HyresbostandScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Swedish rental apartment listings.",
+    ),
+    RentalSite(
+        name="bovision",
+        base_url="https://www.bovision.se",
+        search_url_template=(
+            "https://www.bovision.se/hyra/lagenhet/stockholms-lan"
+            "?minMonthlyRent={min_price}&maxMonthlyRent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bovision.BovisionScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Swedish property portal with rental section.",
+    ),
+    RentalSite(
+        name="bostad_direkt",
+        base_url="https://www.bostaddirekt.com",
+        search_url_template=(
+            "https://www.bostaddirekt.com/hyra-lagenhet/stockholm"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostad_direkt.BostadDirektScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Direct rental listings from landlords.",
+    ),
+    RentalSite(
+        name="hemavi",
+        base_url="https://hemavi.com",
+        search_url_template=(
+            "https://hemavi.com/sok?location=stockholm&type=hyresratt"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.hemavi.HemaviScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Modern rental marketplace.",
+    ),
+    RentalSite(
+        name="renthia",
+        base_url="https://renthia.com",
+        search_url_template=(
+            "https://renthia.com/en/for-rent/stockholm"
+            "?minPrice={min_price}&maxPrice={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.renthia.RenthiaScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="International-friendly rental platform with English support.",
+    ),
 ]
 
 
@@ -413,3 +552,37 @@ def get_all_sites_for_city(city: str = None) -> list[RentalSite]:
     """Return all sites for a city (including disabled ones)."""
     city = (city or DEFAULT_CITY).lower()
     return [s for s in RENTAL_SITES if s.city.lower() == city]
+
+
+# === STOCKHOLM AREA LOCATIONS ===
+# Cities/municipalities within 20km radius of Vasagatan 12, Stockholm
+STOCKHOLM_AREA_LOCATIONS = [
+    "stockholm",
+    "solna",
+    "sundbyberg",
+    "nacka",
+    "lidingö",
+    "danderyd",
+    "järfälla",
+    "sollentuna",
+    "huddinge",
+    "bromma",
+    "täby",
+    "upplands väsby",
+]
+
+# Approximate coordinates for Stockholm area location centers
+STOCKHOLM_LOCATION_CENTERS = {
+    "stockholm": (59.3293, 18.0686),
+    "solna": (59.3600, 18.0005),
+    "sundbyberg": (59.3607, 17.9720),
+    "nacka": (59.3106, 18.1631),
+    "lidingö": (59.3633, 18.1381),
+    "danderyd": (59.3997, 18.0284),
+    "järfälla": (59.4280, 17.8350),
+    "sollentuna": (59.4282, 17.9509),
+    "huddinge": (59.2370, 17.9816),
+    "bromma": (59.3380, 17.9426),
+    "täby": (59.4437, 18.0685),
+    "upplands väsby": (59.5185, 17.9138),
+}
