@@ -15,7 +15,7 @@ class ListingDatabase:
     # Columns in the database schema
     DB_COLUMNS = {
         "listing_url", "source_site", "raw_page_path", "scraped_at", "last_seen_at",
-        "title", "price_eur", "address", "city", "neighborhood", "postal_code",
+        "title", "price_eur", "price_sek", "address", "city", "neighborhood", "postal_code",
         "latitude", "longitude", "surface_m2", "rooms", "bedrooms", "bathrooms",
         "floor", "furnished", "property_type", "deposit_eur", "available_date",
         "minimum_contract_months", "pets_allowed", "smoking_allowed", "energy_label",
@@ -54,6 +54,7 @@ class ListingDatabase:
                 -- Core details
                 title TEXT,
                 price_eur REAL,
+                price_sek REAL,
                 address TEXT,
                 city TEXT,
                 neighborhood TEXT,
@@ -127,6 +128,12 @@ class ListingDatabase:
         # Migration: Add transit_transfers column if it doesn't exist
         try:
             cursor.execute("ALTER TABLE listings ADD COLUMN transit_transfers INTEGER")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        # Migration: Add price_sek column for Swedish listings
+        try:
+            cursor.execute("ALTER TABLE listings ADD COLUMN price_sek REAL")
         except sqlite3.OperationalError:
             pass  # Column already exists
 

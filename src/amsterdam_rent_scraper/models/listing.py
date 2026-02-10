@@ -18,6 +18,7 @@ class RentalListing(BaseModel):
     # === Core details ===
     title: Optional[str] = None
     price_eur: Optional[float] = Field(None, description="Monthly rent in EUR")
+    price_sek: Optional[float] = Field(None, description="Monthly rent in SEK (Swedish listings)")
     address: Optional[str] = None
     city: Optional[str] = None
     neighborhood: Optional[str] = None

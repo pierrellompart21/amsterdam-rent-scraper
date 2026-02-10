@@ -17,7 +17,7 @@ from amsterdam_rent_scraper.llm.regex_fallback import regex_extract_from_html
 
 console = Console()
 
-EXTRACTION_PROMPT = """You are extracting structured rental listing information from a Dutch housing website page.
+EXTRACTION_PROMPT_EUR = """You are extracting structured rental listing information from a housing website page.
 
 Extract the following fields from the content. Return ONLY valid JSON with these exact keys (use null for missing values):
 
@@ -54,7 +54,7 @@ Important:
 - Extract numbers as integers or floats, not strings
 - Use null for any field you cannot find
 - For price, extract the monthly rent amount only
-- For surface_m2, extract the number only
+- For surface_m2, extract the number only (always in square meters)
 - Summarize the description in 2-3 sentences
 - Identify pros/cons based on the listing description
 
@@ -62,6 +62,63 @@ PAGE CONTENT:
 {content}
 
 Respond with ONLY the JSON object, no explanation or markdown."""
+
+
+EXTRACTION_PROMPT_SEK = """You are extracting structured rental listing information from a Swedish housing website page.
+
+Extract the following fields from the content. Return ONLY valid JSON with these exact keys (use null for missing values):
+
+{{
+  "title": "listing title or address",
+  "price_sek": 15000,
+  "price_eur": 1300,
+  "address": "full street address",
+  "city": "city name",
+  "neighborhood": "neighborhood or district",
+  "postal_code": "123 45",
+  "surface_m2": 75,
+  "rooms": 3,
+  "bedrooms": 2,
+  "bathrooms": 1,
+  "floor": "2nd floor",
+  "furnished": "Furnished/Unfurnished/Upholstered",
+  "property_type": "Apartment/Studio/House",
+  "deposit_eur": 1300,
+  "available_date": "2024-03-01 or Immediately",
+  "minimum_contract_months": 12,
+  "pets_allowed": "Yes/No/Unknown",
+  "smoking_allowed": "Yes/No/Unknown",
+  "energy_label": "A/B/C/D/E/F/G",
+  "building_year": 1990,
+  "landlord_name": "name if shown",
+  "agency": "real estate agency name",
+  "description_summary": "2-3 sentence summary of the listing",
+  "pros": "key positive aspects (location, amenities, etc)",
+  "cons": "any red flags or downsides mentioned",
+  "neighborhood_score": "Good/Average/Below Average based on description"
+}}
+
+Important:
+- Extract numbers as integers or floats, not strings
+- Use null for any field you cannot find
+- For price_sek, extract the monthly rent in Swedish Kronor (SEK/kr)
+- For price_eur, convert SEK to EUR using rate 1 EUR = 11.5 SEK
+- For surface_m2, extract the number only (kvm = square meters)
+- Swedish postal codes are formatted as "XXX XX"
+- Summarize the description in 2-3 sentences
+- Identify pros/cons based on the listing description
+
+PAGE CONTENT:
+{content}
+
+Respond with ONLY the JSON object, no explanation or markdown."""
+
+
+def get_extraction_prompt(city: str = None) -> str:
+    """Get the appropriate extraction prompt based on city/country."""
+    if city and city.lower() == "stockholm":
+        return EXTRACTION_PROMPT_SEK
+    return EXTRACTION_PROMPT_EUR
 
 
 def extract_text_from_html(html: str) -> str:
@@ -141,11 +198,12 @@ class OllamaExtractor:
             console.print(f"[red]Ollama not available: {e}[/]")
             return False
 
-    def extract_from_html(self, html: str, raw_data: dict = None) -> dict:
+    def extract_from_html(self, html: str, raw_data: dict = None, city: str = None) -> dict:
         """Extract structured fields from HTML content using LLM with regex fallback."""
         text = extract_text_from_html(html)
 
-        prompt = EXTRACTION_PROMPT.format(content=text)
+        extraction_prompt = get_extraction_prompt(city)
+        prompt = extraction_prompt.format(content=text)
 
         result = raw_data.copy() if raw_data else {}
 
@@ -174,13 +232,13 @@ class OllamaExtractor:
 
         return result
 
-    def enrich_listing(self, listing_data: dict, raw_html_path: str = None) -> dict:
+    def enrich_listing(self, listing_data: dict, raw_html_path: str = None, city: str = None) -> dict:
         """Enrich a listing with LLM-extracted data."""
         if raw_html_path:
             try:
                 with open(raw_html_path, "r", encoding="utf-8") as f:
                     html = f.read()
-                return self.extract_from_html(html, listing_data)
+                return self.extract_from_html(html, listing_data, city=city)
             except Exception as e:
                 console.print(f"[red]Could not read HTML file: {e}[/]")
 

@@ -14,9 +14,9 @@ def extract_text_from_html(html: str) -> str:
     return soup.get_text(separator=" ", strip=True)
 
 
-def extract_price(text: str) -> Optional[float]:
+def extract_price_eur(text: str) -> Optional[float]:
     """Extract monthly rent price in EUR."""
-    # Patterns for Dutch rental prices
+    # Patterns for Dutch/EUR rental prices
     patterns = [
         # "€ 1.500" or "€1500" or "EUR 1500"
         r"(?:€|EUR|eur)\s*(\d{1,2}[\.,]\d{3}|\d{3,4})(?:\s*(?:per|/|p/m|p\.m\.|pm|per maand|p/mnd))?",
@@ -42,13 +42,44 @@ def extract_price(text: str) -> Optional[float]:
     return None
 
 
+def extract_price_sek(text: str) -> Optional[float]:
+    """Extract monthly rent price in SEK (Swedish Kronor)."""
+    patterns = [
+        # "15 000 kr" or "15000 kr" or "15 000 SEK"
+        r"(\d{1,3}(?:[\s\u00a0]\d{3})*)\s*(?:kr\.?|SEK|sek)(?:\s*(?:per|/|månad|mån|month))?",
+        # "Hyra: 15 000" or "Månadshyra: 15000"
+        r"(?:hyra|månadshyra|månads\s*hyra|rent)[:\s]*(\d{1,3}(?:[\s\u00a0]\d{3})*)",
+        # "SEK 15 000" or "kr 15000"
+        r"(?:SEK|kr\.?)\s*(\d{1,3}(?:[\s\u00a0]\d{3})*)",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            price_str = match.group(1)
+            # Remove spaces (Swedish thousand separator)
+            price_str = price_str.replace(" ", "").replace("\u00a0", "")
+            try:
+                price = float(price_str)
+                # Swedish rent typically 5000-50000 SEK
+                if 3000 <= price <= 100000:
+                    return price
+            except ValueError:
+                continue
+    return None
+
+
 def extract_surface(text: str) -> Optional[float]:
     """Extract surface area in m2."""
     patterns = [
         # "75 m²" or "75m2" or "75 m2"
         r"(\d{2,4})\s*(?:m²|m2|vierkante meter|sqm)",
-        # "Oppervlakte: 75" or "Woonoppervlakte: 75 m²"
+        # "Oppervlakte: 75" or "Woonoppervlakte: 75 m²" (Dutch)
         r"(?:opp(?:ervlakte)?|woon(?:oppervlakte)?|living\s*area|surface)[:\s]*(\d{2,4})\s*(?:m²|m2)?",
+        # Swedish: "75 kvm" or "75kvm"
+        r"(\d{2,4})\s*kvm\b",
+        # Swedish: "Storlek: 75" or "Yta: 75"
+        r"(?:storlek|yta|boarea)[:\s]*(\d{2,4})\s*(?:m²|m2|kvm)?",
     ]
 
     for pattern in patterns:
@@ -67,12 +98,16 @@ def extract_surface(text: str) -> Optional[float]:
 def extract_rooms(text: str) -> Optional[int]:
     """Extract number of rooms."""
     patterns = [
-        # "3 kamers" or "3-kamer"
+        # "3 kamers" or "3-kamer" (Dutch)
         r"(\d)\s*(?:-?\s*)?kamers?(?:\s*woning)?",
         # "3 rooms"
         r"(\d)\s*rooms?",
         # "Kamers: 3"
         r"(?:kamers?|rooms?)[:\s]*(\d)",
+        # Swedish: "3 rum" or "3 rok" (rum och kök)
+        r"(\d)\s*(?:rum|rok)\b",
+        # Swedish: "3-rumslägenhet" or "3 rums lägenhet"
+        r"(\d)\s*(?:-?\s*)?rums?\s*(?:lägenhet)?",
     ]
 
     for pattern in patterns:
@@ -108,8 +143,15 @@ def extract_bedrooms(text: str) -> Optional[int]:
     return None
 
 
-def extract_postal_code(text: str) -> Optional[str]:
-    """Extract Dutch postal code (1234 AB format)."""
+def extract_postal_code(text: str, city: str = None) -> Optional[str]:
+    """Extract postal code based on country format."""
+    if city and city.lower() == "stockholm":
+        # Swedish postal code: XXX XX (5 digits with space)
+        match = re.search(r"\b(\d{3})\s*(\d{2})\b", text)
+        if match:
+            return f"{match.group(1)} {match.group(2)}"
+        return None
+
     # Dutch postal code: 4 digits + 2 letters
     match = re.search(r"\b(\d{4}\s*[A-Za-z]{2})\b", text)
     if match:
@@ -263,23 +305,46 @@ def extract_property_type(text: str) -> Optional[str]:
     return None
 
 
-def regex_extract_from_html(html: str, existing_data: dict = None) -> dict:
+def regex_extract_from_html(html: str, existing_data: dict = None, city: str = None) -> dict:
     """
     Extract rental listing data using regex patterns.
 
     This serves as a fallback when LLM extraction is incomplete or unavailable.
     Only fills in fields that are missing from existing_data.
+
+    Args:
+        html: Raw HTML content
+        existing_data: Existing extracted data to fill in gaps
+        city: City name for country-specific extraction (e.g., "stockholm" for Swedish)
     """
     text = extract_text_from_html(html)
     existing_data = existing_data or {}
+    result = dict(existing_data)
 
-    # Map of field names to extraction functions
+    is_swedish = city and city.lower() == "stockholm"
+
+    # Handle price extraction based on country
+    if is_swedish:
+        # Swedish listings: extract SEK and convert to EUR
+        if result.get("price_sek") is None:
+            price_sek = extract_price_sek(text)
+            if price_sek is not None:
+                result["price_sek"] = price_sek
+                # Convert to EUR if not already set (1 EUR ≈ 11.5 SEK)
+                if result.get("price_eur") is None:
+                    result["price_eur"] = round(price_sek / 11.5, 2)
+    else:
+        # EUR-based listings (Dutch, Finnish)
+        if result.get("price_eur") is None:
+            price_eur = extract_price_eur(text)
+            if price_eur is not None:
+                result["price_eur"] = price_eur
+
+    # Map of field names to extraction functions (excluding price, handled above)
     extractors = {
-        "price_eur": extract_price,
         "surface_m2": extract_surface,
         "rooms": extract_rooms,
         "bedrooms": extract_bedrooms,
-        "postal_code": extract_postal_code,
         "floor": extract_floor,
         "energy_label": extract_energy_label,
         "deposit_eur": extract_deposit,
@@ -289,13 +354,17 @@ def regex_extract_from_html(html: str, existing_data: dict = None) -> dict:
         "property_type": extract_property_type,
     }
 
-    result = dict(existing_data)
-
     for field, extractor in extractors.items():
         # Only extract if field is missing or None
         if result.get(field) is None:
             extracted = extractor(text)
             if extracted is not None:
                 result[field] = extracted
+
+    # Handle postal code separately (needs city parameter)
+    if result.get("postal_code") is None:
+        postal = extract_postal_code(text, city=city)
+        if postal is not None:
+            result["postal_code"] = postal
 
     return result

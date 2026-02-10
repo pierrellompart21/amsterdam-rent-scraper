@@ -306,7 +306,7 @@ def run_pipeline(
                     for listing in all_listings:
                         raw_path = listing.get("raw_page_path")
                         if raw_path:
-                            listing.update(extractor.enrich_listing(listing, raw_path))
+                            listing.update(extractor.enrich_listing(listing, raw_path, city=city))
                         progress.advance(task)
             else:
                 console.print(
@@ -322,7 +322,7 @@ def run_pipeline(
                             try:
                                 with open(raw_path, "r", encoding="utf-8") as f:
                                     html = f.read()
-                                listing.update(regex_extract_from_html(html, listing))
+                                listing.update(regex_extract_from_html(html, listing, city=city))
                             except Exception:
                                 pass
                         progress.advance(task)
@@ -338,7 +338,7 @@ def run_pipeline(
                         try:
                             with open(raw_path, "r", encoding="utf-8") as f:
                                 html = f.read()
-                            listing.update(regex_extract_from_html(html, listing))
+                            listing.update(regex_extract_from_html(html, listing, city=city))
                         except Exception:
                             pass
                     progress.advance(task)
