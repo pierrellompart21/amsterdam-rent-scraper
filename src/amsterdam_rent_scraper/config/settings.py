@@ -87,7 +87,7 @@ CITIES: dict[str, CityConfig] = {
             "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia",
             "heimstaden", "rentumo", "bostadsportal", "svenskabostader",
             "bostadslistan", "residensportalen", "nestpick", "rentberry",
-            "bostadszonen"
+            "bostadszonen", "bostad_stockholm", "properstar", "housinganywhere_stockholm"
         ],
     ),
 }
@@ -620,6 +620,36 @@ RENTAL_SITES: list[RentalSite] = [
         city="stockholm",
         needs_js=True,
         notes="Swedish national housing portal with strong Stockholm coverage.",
+    ),
+    RentalSite(
+        name="bostad_stockholm",
+        base_url="https://bostad.stockholm.se",
+        search_url_template=(
+            "https://bostad.stockholm.se/lista/"
+            "?hyra_fran={min_price}&hyra_till={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostad_stockholm.BostadStockholmScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Official Stockholm housing queue (Bostadsförmedlingen). Public rental apartments.",
+    ),
+    RentalSite(
+        name="properstar",
+        base_url="https://www.properstar.com",
+        search_url_template="https://www.properstar.com/sweden/stockholm/rent/apartment",
+        scraper_class="amsterdam_rent_scraper.scrapers.properstar.PropertystarScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="International property portal with 954+ Sweden listings.",
+    ),
+    RentalSite(
+        name="housinganywhere_stockholm",
+        base_url="https://housinganywhere.com",
+        search_url_template="https://housinganywhere.com/s/Stockholm--Sweden",
+        scraper_class="amsterdam_rent_scraper.scrapers.housinganywhere_stockholm.HousinganywhereStockholmScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="International mid-term rental platform. Popular with expats and students.",
     ),
 ]
 
