@@ -1,53 +1,53 @@
 # Multi-City Rent Scraper - Task Notes
 
-## Current State: Stockholm City Added
+## Current State: Stockholm Scrapers In Progress
 
-Stockholm has been added as the third supported city. All configuration, neighborhoods, and placeholder scrapers are implemented.
+Stockholm is the third supported city. Scrapers are being expanded with priority Swedish rental sites.
 
 ### Stockholm Configuration
 - Work address: Vasagatan 12, 111 20 Stockholm, Sweden
-- Price range: 11,500 - 23,000 SEK (approximately 1,000 - 2,000 EUR)
-- Currency: SEK (converted to EUR in scrapers)
+- Price range: 10,000 - 25,000 SEK
+- Currency: SEK (converted to EUR in scrapers at ~11.5 SEK/EUR)
 - Transit API: transitous
 
-### Stockholm Scrapers (10)
-All scrapers inherit from PlaywrightBaseScraper with Swedish locale:
+### Stockholm Scrapers (11)
+**Working scrapers tested with real data:**
+- heimstaden - API-based, intercepts Vue.js API calls. Tested: 435 listings, 16 Stockholm matches in price range. Rich data including coordinates, amenities.
+
+**Existing scrapers (need testing/tuning):**
 - blocket, qasa, samtrygg, homeq, bostadsportalen
 - hyresbostad, bovision, bostad_direkt, hemavi, renthia
 
-**Note**: Scrapers are placeholder implementations with basic structure. They will need tuning based on actual site HTML when tested.
+### Priority Sites Research Summary
+From the goal's priority list:
+- **hemnet.se** - Primarily for property SALES, not rentals. Skip.
+- **rikshem.se** - Routes Stockholm apartments through Bostadsförmedlingen (queue system). Direct scraping not useful.
+- **heimstaden.com** - DONE. Uses mitt.heimstaden.com with Vue.js + API
+- **wallenstam.se** - Queue-based, Stockholm via Bostadsförmedlingen. Limited direct listings (mostly new construction)
+- **victoriapark.se** - Stockholm via Bostadsförmedlingen. Not suitable for direct scraping.
+- **stena.se** - Stockholm via Bostadsförmedlingen. Queue-based.
+- **akelius.se** - Queue-based system without time-based priority. Portal at akelius.se/sv/search
+- **sfrental.se** - Not found as a distinct site. May be defunct or different name.
 
-### Stockholm Areas (12)
-stockholm, solna, sundbyberg, nacka, lidingö, danderyd, järfälla, sollentuna, huddinge, bromma, täby, upplands väsby
-
-### Stockholm Neighborhoods (26)
-Central: norrmalm, östermalm, södermalm, vasastan, kungsholmen, gamla stan, djurgården
-Other: hammarby sjöstad, gärdet, hjorthagen, liljeholmen, hornstull, fridhemsplan, odenplan, sankt eriksplan
-Suburbs: solna, sundbyberg, nacka, lidingö, danderyd, järfälla, sollentuna, huddinge, bromma, täby, upplands väsby
+### Next Priority Sites to Implement
+Sites with direct listing access (not queue-only):
+1. **akelius.se** - Has search portal, worth implementing
+2. **wallenstam.se** - Has some direct listings for new construction
 
 ## CLI Quick Reference
 ```bash
-# Normal scraping
-rent-scraper scrape --city amsterdam --skip-llm
-rent-scraper scrape --city helsinki --skip-llm
-rent-scraper scrape --city stockholm --skip-llm
+# Test specific scraper
+rent-scraper scrape --city stockholm --sites heimstaden --skip-llm
 
-# Stealth mode (requires Chrome + pip install undetected-chromedriver)
-rent-scraper scrape --city amsterdam --stealth --sites funda --skip-llm
-rent-scraper scrape --city helsinki --stealth --sites vuokraovi --skip-llm
+# Full Stockholm scrape
+rent-scraper scrape --city stockholm --skip-llm
 
 # Database info
 rent-scraper db-info --city stockholm
 rent-scraper export --city stockholm --format html
 ```
 
-## Next Steps for Stockholm
-1. Test scrapers against actual Swedish rental sites
-2. Adjust HTML selectors based on actual site structure
-3. Add stealth scrapers if sites block headless browsers
-4. Fine-tune Swedish price/room regex patterns based on real listings
-
 ## Regular Scrapers Summary
 - Amsterdam (9): pararius, huurwoningen, 123wonen, huurstunt, kamernet, iamexpat, rotsvast, expathousingnetwork, huure
 - Helsinki (8): sato, oikotie, lumo, ta, retta, avara, keva, ovv
-- Stockholm (10): blocket, qasa, samtrygg, homeq, bostadsportalen, hyresbostad, bovision, bostad_direkt, hemavi, renthia
+- Stockholm (11): blocket, qasa, samtrygg, homeq, bostadsportalen, hyresbostad, bovision, bostad_direkt, hemavi, renthia, heimstaden
