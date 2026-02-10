@@ -15,13 +15,11 @@ class RotsvastScraper(BaseScraper):
     base_url = "https://www.rotsvast.nl"
 
     def get_search_url(self, page: int = 1) -> str:
-        """Build search URL for Amsterdam rentals with price filter."""
-        # Rotsvast URL structure: /huren/amsterdam/ or /huren/page/N/
-        # Filter params available but we'll filter Amsterdam in post-processing
-        # since the location filter is by branch office, not city
+        """Build search URL for rentals with price filter."""
+        # Rotsvast URL structure: /huren/{location}/ or /huren/{location}/page/N/
         if page == 1:
-            return f"{self.base_url}/huren/amsterdam/"
-        return f"{self.base_url}/huren/amsterdam/page/{page}/"
+            return f"{self.base_url}/huren/{self.location}/"
+        return f"{self.base_url}/huren/{self.location}/page/{page}/"
 
     def get_listing_urls(self) -> list[str]:
         """Scrape search results to get all listing URLs."""

@@ -16,7 +16,7 @@ class ParariusScraper(BaseScraper):
 
     def get_search_url(self, page: int = 1) -> str:
         """Build search URL for given page."""
-        base = f"{self.base_url}/apartments/amsterdam/{self.min_price}-{self.max_price}"
+        base = f"{self.base_url}/apartments/{self.location}/{self.min_price}-{self.max_price}"
         if page > 1:
             return f"{base}/page-{page}"
         return base
@@ -45,7 +45,7 @@ class ParariusScraper(BaseScraper):
                 if not listing_links:
                     # Try alternative selectors
                     listing_links = soup.select(
-                        'a[href*="/apartment-for-rent/amsterdam/"]'
+                        f'a[href*="/apartment-for-rent/{self.location}/"]'
                     )
 
                 if not listing_links:

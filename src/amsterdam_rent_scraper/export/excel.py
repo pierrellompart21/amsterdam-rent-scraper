@@ -55,6 +55,9 @@ COLUMN_ORDER = [
 
 def _serialize_value(value: Any) -> Any:
     """Convert non-serializable values to strings for Excel compatibility."""
+    if isinstance(value, dict):
+        # Convert dict to a readable string format
+        return "; ".join(f"{k}: {v}" for k, v in value.items() if v)
     if isinstance(value, list):
         return "; ".join(str(v) for v in value)
     return value

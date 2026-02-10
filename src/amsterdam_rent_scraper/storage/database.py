@@ -150,13 +150,12 @@ class ListingDatabase:
         if not url:
             raise ValueError("Listing must have a listing_url")
 
-        # Convert bike_route_coords list to JSON string
-        if data.get("bike_route_coords"):
-            data["bike_route_coords"] = json.dumps(data["bike_route_coords"])
-
-        # Convert datetime to string
-        if isinstance(data.get("scraped_at"), datetime):
-            data["scraped_at"] = data["scraped_at"].isoformat()
+        # Convert all list/dict values to JSON strings (SQLite doesn't support these types)
+        for key, value in list(data.items()):
+            if isinstance(value, (list, dict)):
+                data[key] = json.dumps(value, ensure_ascii=False)
+            elif isinstance(value, datetime):
+                data[key] = value.isoformat()
 
         # Filter to only include columns that exist in the database schema
         data = {k: v for k, v in data.items() if k in self.DB_COLUMNS}
@@ -203,14 +202,14 @@ class ListingDatabase:
 
             return cursor.lastrowid, True
 
-    def bulk_upsert(self, listings: list[dict | RentalListing]) -> tuple[int, int]:
+    def bulk_upsert(self, listings: list[dict | RentalListing]) -> tuple[int, int, int]:
         """Insert or update multiple listings.
 
         Args:
             listings: List of listing data
 
         Returns:
-            Tuple of (new_count, updated_count)
+            Tuple of (new_count, updated_count, error_count)
         """
         new_count = 0
         updated_count = 0
@@ -229,7 +228,7 @@ class ListingDatabase:
                 import sys
                 print(f"  [DB ERROR] {type(e).__name__}: {e}", file=sys.stderr)
 
-        return new_count, updated_count
+        return new_count, updated_count, error_count
 
     def get_all_listings(
         self,

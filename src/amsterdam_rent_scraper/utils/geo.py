@@ -2,6 +2,7 @@
 
 import math
 import time
+from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import httpx
@@ -14,13 +15,21 @@ from amsterdam_rent_scraper.config.settings import (
     WORK_LAT,
     WORK_LNG,
     get_city_config,
+    get_location_center,
 )
 from amsterdam_rent_scraper.utils.neighborhoods import enrich_listing_with_neighborhood
 
 console = Console()
 
-# Initialize geocoder
-geolocator = Nominatim(user_agent="rent_scraper")
+# Initialize geocoder with longer timeout
+geolocator = Nominatim(user_agent="rent_scraper", timeout=10)
+
+# Rate limiting for Nominatim (strict 1 req/sec policy)
+_last_nominatim_request = 0.0
+NOMINATIM_MIN_INTERVAL = 1.0  # seconds between requests (Nominatim policy)
+
+# Geocoding cache to avoid repeated lookups for the same address
+_geocode_cache: dict[str, Optional[Tuple[float, float]]] = {}
 
 # OSRM public demo server (free, no API key required)
 OSRM_BASE_URL = "http://router.project-osrm.org/route/v1"
@@ -60,8 +69,19 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * c
 
 
-def geocode_address(address: str, city: str = None) -> Optional[Tuple[float, float]]:
-    """Geocode an address to latitude/longitude coordinates."""
+def geocode_address(address: str, city: str = None, max_retries: int = 2) -> Optional[Tuple[float, float]]:
+    """Geocode an address to latitude/longitude coordinates.
+
+    Uses a cache to avoid repeated lookups for the same address.
+
+    Args:
+        address: The address to geocode
+        city: City name for country context
+        max_retries: Number of retry attempts on failure (default 2)
+
+    Returns:
+        Tuple of (latitude, longitude) or None if geocoding failed
+    """
     if not address:
         return None
 
@@ -69,6 +89,7 @@ def geocode_address(address: str, city: str = None) -> Optional[Tuple[float, flo
 
     # Add country if not present
     country_lower = city_config.country.lower()
+    full_address = address
     if country_lower not in address.lower():
         # Also check for common abbreviations
         country_abbrevs = {
@@ -77,18 +98,55 @@ def geocode_address(address: str, city: str = None) -> Optional[Tuple[float, flo
         }
         abbrevs = country_abbrevs.get(country_lower, [])
         if not any(abbrev in address.lower() for abbrev in abbrevs):
-            address = f"{address}, {city_config.country}"
+            full_address = f"{address}, {city_config.country}"
 
-    try:
-        location = geolocator.geocode(address, timeout=10)
-        if location:
-            return (location.latitude, location.longitude)
-    except GeocoderTimedOut:
-        console.print(f"[yellow]Geocoding timed out for: {address}[/]")
-    except Exception as e:
-        console.print(f"[yellow]Geocoding failed for {address}: {e}[/]")
+    # Check cache first
+    cache_key = full_address.lower().strip()
+    if cache_key in _geocode_cache:
+        return _geocode_cache[cache_key]
 
+    for attempt in range(max_retries + 1):
+        # Rate limit before each request (Nominatim requires 1 req/sec)
+        _rate_limit_nominatim()
+
+        try:
+            location = geolocator.geocode(full_address, timeout=10)
+            if location:
+                result = (location.latitude, location.longitude)
+                _geocode_cache[cache_key] = result
+                return result
+            # If no result found, cache the negative result and don't retry
+            _geocode_cache[cache_key] = None
+            return None
+        except GeocoderTimedOut:
+            if attempt < max_retries:
+                # Exponential backoff on timeout
+                time.sleep(2 ** attempt)
+                continue
+            console.print(f"[yellow]Geocoding timed out for: {full_address}[/]")
+        except Exception as e:
+            error_str = str(e)
+            # Check for rate limiting (403) or connection refused
+            if "403" in error_str or "Connection refused" in error_str:
+                if attempt < max_retries:
+                    # Wait longer on rate limit errors
+                    wait_time = 5 * (attempt + 1)
+                    time.sleep(wait_time)
+                    continue
+            console.print(f"[yellow]Geocoding failed for {full_address}: {e}[/]")
+            break
+
+    # Cache failure to avoid retrying
+    _geocode_cache[cache_key] = None
     return None
+
+
+def get_geocode_cache_stats() -> dict:
+    """Get statistics about the geocoding cache."""
+    total = len(_geocode_cache)
+    hits = sum(1 for v in _geocode_cache.values() if v is not None)
+    misses = total - hits
+    return {"total": total, "hits": hits, "misses": misses}
 
 
 def calculate_distance_to_work(lat: float, lon: float, city: str = None) -> float:
@@ -122,6 +180,15 @@ def _rate_limit_hsl():
     if elapsed < HSL_MIN_INTERVAL:
         time.sleep(HSL_MIN_INTERVAL - elapsed)
     _last_hsl_request = time.time()
+
+
+def _rate_limit_nominatim():
+    """Ensure we don't hit Nominatim too frequently (strict 1 req/sec policy)."""
+    global _last_nominatim_request
+    elapsed = time.time() - _last_nominatim_request
+    if elapsed < NOMINATIM_MIN_INTERVAL:
+        time.sleep(NOMINATIM_MIN_INTERVAL - elapsed)
+    _last_nominatim_request = time.time()
 
 
 def get_osrm_route(
@@ -391,7 +458,17 @@ def estimate_commute_times(distance_km: float) -> Tuple[int, int]:
     return (bike_minutes, transit_minutes)
 
 
-def enrich_listing_with_geo(listing: dict, use_osrm: bool = True, city: str = None) -> dict:
+@dataclass
+class GeoEnrichmentResult:
+    """Result of geographic enrichment with success/failure tracking."""
+    geocode_success: bool = False
+    geocode_used_fallback: bool = False  # True if used city center fallback
+    bike_route_success: bool = False
+    transit_route_success: bool = False
+    driving_route_success: bool = False
+
+
+def enrich_listing_with_geo(listing: dict, use_osrm: bool = True, city: str = None) -> tuple[dict, GeoEnrichmentResult]:
     """
     Add geographic data to a listing.
 
@@ -400,17 +477,26 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True, city: str = No
         use_osrm: If True, use OSRM API for real routing (slower but accurate).
                   If False, use simple distance-based estimates (faster).
         city: City name for city-specific geocoding and routing
+
+    Returns:
+        Tuple of (enriched_listing, GeoEnrichmentResult with success flags)
     """
     city_config = get_city_config(city) if city else get_city_config(DEFAULT_CITY)
+    result = GeoEnrichmentResult()
 
     # Try to get coordinates
     lat = listing.get("latitude")
     lon = listing.get("longitude")
 
+    # Already has coordinates
+    if lat and lon:
+        result.geocode_success = True
+
     if not lat or not lon:
         # Try to geocode from address or postal code
         address = listing.get("address") or listing.get("title")
         postal = listing.get("postal_code")
+        listing_city = listing.get("city") or city_config.name
 
         # Try different geocoding strategies
         coords = None
@@ -428,10 +514,21 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True, city: str = No
                 address = f"{address}, {postal}"
             coords = geocode_address(address, city=city)
 
+        # Strategy 3: Fallback to city center if geocoding failed
+        if not coords:
+            # Try listing's city first, then the main search city
+            fallback_coords = get_location_center(listing_city)
+            if not fallback_coords:
+                fallback_coords = get_location_center(city_config.name)
+            if fallback_coords:
+                coords = fallback_coords
+                result.geocode_used_fallback = True
+
         if coords:
             listing["latitude"] = coords[0]
             listing["longitude"] = coords[1]
             lat, lon = coords
+            result.geocode_success = True
 
     # Calculate distance and commute times
     if lat and lon:
@@ -445,6 +542,7 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True, city: str = No
             if routes["bike_min"] is not None:
                 listing["commute_time_bike_min"] = routes["bike_min"]
                 listing["bike_route_coords"] = routes["bike_route_coords"]
+                result.bike_route_success = True
             else:
                 # Fallback to estimate
                 bike_min, _ = estimate_commute_times(distance)
@@ -452,11 +550,13 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True, city: str = No
 
             if routes["driving_min"] is not None:
                 listing["commute_time_driving_min"] = routes["driving_min"]
+                result.driving_route_success = True
 
             # Transit via city-appropriate API or fallback to heuristic
             if routes["transit_min"] is not None:
                 listing["commute_time_transit_min"] = routes["transit_min"]
                 listing["transit_transfers"] = routes["transit_transfers"]
+                result.transit_route_success = True
             else:
                 # Fallback to heuristic if API fails
                 _, transit_min = estimate_commute_times(distance)
@@ -470,4 +570,4 @@ def enrich_listing_with_geo(listing: dict, use_osrm: bool = True, city: str = No
     # Add neighborhood quality scores (city-specific)
     enrich_listing_with_neighborhood(listing, city=city)
 
-    return listing
+    return listing, result

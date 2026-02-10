@@ -17,9 +17,9 @@ class KamernetScraper(PlaywrightBaseScraper):
     base_url = "https://kamernet.nl"
 
     def get_search_url(self, page_num: int = 1) -> str:
-        """Build search URL for Amsterdam rentals."""
-        # Kamernet uses Dutch URLs: /huren/huurwoningen-amsterdam
-        url = f"{self.base_url}/huren/huurwoningen-amsterdam"
+        """Build search URL for rentals."""
+        # Kamernet uses Dutch URLs: /huren/huurwoningen-{location}
+        url = f"{self.base_url}/huren/huurwoningen-{self.location}"
         params = []
         if self.min_price:
             params.append(f"minRent={self.min_price}")
@@ -56,13 +56,13 @@ class KamernetScraper(PlaywrightBaseScraper):
                 html = page.content()
                 soup = BeautifulSoup(html, "lxml")
 
-                # Kamernet listing URLs: /huren/kamer-amsterdam/STREET/kamer-ID
-                # or /huren/appartement-amsterdam/STREET/appartement-ID
+                # Kamernet listing URLs: /huren/kamer-{location}/STREET/kamer-ID
+                # or /huren/appartement-{location}/STREET/appartement-ID
                 page_urls = []
                 for link in soup.select('a[href*="/huren/"]'):
                     href = link.get("href", "")
                     # Match listing URLs with type-ID pattern
-                    if re.search(r"/huren/(kamer|appartement|studio|woning)-amsterdam/[^/]+/(kamer|appartement|studio|woning)-\d+$", href):
+                    if re.search(rf"/huren/(kamer|appartement|studio|woning)-{self.location}/[^/]+/(kamer|appartement|studio|woning)-\d+$", href):
                         full_url = urljoin(self.base_url, href)
                         if full_url not in urls and full_url not in page_urls:
                             page_urls.append(full_url)
@@ -113,13 +113,14 @@ class KamernetScraper(PlaywrightBaseScraper):
                 data["title"] = title_el.get_text(strip=True)
 
         # Fallback: derive title from URL
-        # URL pattern: /huren/TYPE-amsterdam/STREET/TYPE-ID
+        # URL pattern: /huren/TYPE-{location}/STREET/TYPE-ID
         if "title" not in data or not data.get("title"):
-            url_match = re.search(r"/huren/(\w+)-amsterdam/([^/]+)/", url)
+            url_match = re.search(r"/huren/(\w+)-(\w+)/([^/]+)/", url)
             if url_match:
                 prop_type = url_match.group(1).replace("-", " ").title()
-                street = url_match.group(2).replace("-", " ").title()
-                data["title"] = f"{prop_type} - {street}, Amsterdam"
+                location = url_match.group(2).replace("-", " ").title()
+                street = url_match.group(3).replace("-", " ").title()
+                data["title"] = f"{prop_type} - {street}, {location}"
 
         # Price - Kamernet shows monthly rent
         price_patterns = ['.rent-price', '.price', '[class*="price"]', '.monthly-rent']
@@ -149,10 +150,11 @@ class KamernetScraper(PlaywrightBaseScraper):
 
         # Fallback: derive address from URL
         if "address" not in data or not data.get("address"):
-            url_match = re.search(r"/huren/\w+-amsterdam/([^/]+)/", url)
+            url_match = re.search(r"/huren/\w+-(\w+)/([^/]+)/", url)
             if url_match:
-                street = url_match.group(1).replace("-", " ").title()
-                data["address"] = f"{street}, Amsterdam"
+                location = url_match.group(1).replace("-", " ").title()
+                street = url_match.group(2).replace("-", " ").title()
+                data["address"] = f"{street}, {location}"
 
         # Get text for regex extraction
         full_text = soup.get_text()

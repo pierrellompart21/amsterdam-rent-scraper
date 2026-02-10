@@ -42,10 +42,10 @@ class IamExpatScraper(PlaywrightBaseScraper):
                 page.close()
 
     def get_search_url(self, page_num: int = 1) -> str:
-        """Build search URL for Amsterdam rentals."""
-        # IamExpat URL structure: /housing/rentals/amsterdam
+        """Build search URL for rentals."""
+        # IamExpat URL structure: /housing/rentals/{location}
         # Price filtering via query params: minPrice, maxPrice
-        url = f"{self.base_url}/housing/rentals/amsterdam"
+        url = f"{self.base_url}/housing/rentals/{self.location}"
         params = []
         if self.min_price:
             params.append(f"minPrice={self.min_price}")
@@ -89,13 +89,13 @@ class IamExpatScraper(PlaywrightBaseScraper):
                 html = page.content()
                 soup = BeautifulSoup(html, "lxml")
 
-                # IamExpat listing URLs pattern: /housing/rental-properties/amsterdam/TYPE/ID
+                # IamExpat listing URLs pattern: /housing/rental-properties/{location}/TYPE/ID
                 # Types: apartment, house, room, studio
                 page_urls = []
-                for link in soup.select('a[href*="/housing/rental-properties/amsterdam/"]'):
+                for link in soup.select(f'a[href*="/housing/rental-properties/{self.location}/"]'):
                     href = link.get("href", "")
                     # Match listing URLs with type and unique ID
-                    if re.search(r"/housing/rental-properties/amsterdam/(apartment|house|room|studio)/[A-Za-z0-9]+$", href):
+                    if re.search(rf"/housing/rental-properties/{self.location}/(apartment|house|room|studio)/[A-Za-z0-9]+$", href):
                         full_url = urljoin(self.base_url, href)
                         if full_url not in urls and full_url not in page_urls:
                             page_urls.append(full_url)
@@ -173,9 +173,9 @@ class IamExpatScraper(PlaywrightBaseScraper):
                     break
 
         # Fallback: derive title from URL
-        # URL pattern: /housing/rental-properties/amsterdam/TYPE/ID
+        # URL pattern: /housing/rental-properties/{location}/TYPE/ID
         if "title" not in data:
-            url_match = re.search(r"/housing/rental-properties/amsterdam/(\w+)/", url)
+            url_match = re.search(r"/housing/rental-properties/\w+/(\w+)/", url)
             if url_match:
                 prop_type = url_match.group(1).replace("-", " ").title()
                 data["title"] = f"{prop_type} in Amsterdam"

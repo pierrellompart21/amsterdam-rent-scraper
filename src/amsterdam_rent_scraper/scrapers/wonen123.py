@@ -17,7 +17,7 @@ class Wonen123Scraper(BaseScraper):
 
     def get_search_url(self, page: int = 1) -> str:
         """Build search URL for given page."""
-        base = f"{self.base_url}/huurwoningen/in/amsterdam"
+        base = f"{self.base_url}/huurwoningen/in/{self.location}"
         params = f"?minprice={self.min_price}&maxprice={self.max_price}"
         if page > 1:
             params += f"&page={page}"
@@ -42,11 +42,11 @@ class Wonen123Scraper(BaseScraper):
 
                 listing_links_found = []
 
-                # Find links to listing pages - pattern: /huur/amsterdam/*/
-                for link in soup.select("a[href*='/huur/amsterdam/']"):
+                # Find links to listing pages - pattern: /huur/{location}/*/
+                for link in soup.select(f"a[href*='/huur/{self.location}/']"):
                     href = link.get("href", "")
-                    # Listing URLs have pattern /huur/amsterdam/type/address-id-14
-                    if re.search(r"/huur/amsterdam/[^/]+/[^/]+-\d+-14", href):
+                    # Listing URLs have pattern /huur/{location}/type/address-id-14
+                    if re.search(rf"/huur/{self.location}/[^/]+/[^/]+-\d+-14", href):
                         full_url = urljoin(self.base_url, href)
                         if full_url not in listing_links_found:
                             listing_links_found.append(full_url)

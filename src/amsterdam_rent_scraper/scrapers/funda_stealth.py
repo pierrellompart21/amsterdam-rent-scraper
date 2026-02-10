@@ -36,10 +36,10 @@ class FundaStealthScraper(StealthBaseScraper):
         super().__init__(*args, **kwargs)
 
     def get_search_url(self, page_num: int = 1) -> str:
-        """Build search URL for Amsterdam rentals."""
+        """Build search URL for rentals."""
         url = (
             f"{self.base_url}/zoeken/huur"
-            f"?selected_area=%5B%22amsterdam%22%5D"
+            f"?selected_area=%5B%22{self.location}%22%5D"
             f"&price=%22{self.min_price}-{self.max_price}%22"
             f"&availability=%5B%22available%22%5D"
         )

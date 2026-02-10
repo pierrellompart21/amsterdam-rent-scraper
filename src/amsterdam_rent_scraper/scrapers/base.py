@@ -56,10 +56,12 @@ class BaseScraper(abc.ABC):
         max_price: int = 2000,
         test_mode: bool = False,
         max_listings: int = None,
+        location: str = "amsterdam",
     ):
         self.min_price = min_price
         self.max_price = max_price
         self.test_mode = test_mode
+        self.location = location
         # Priority: explicit max_listings > test_mode default > unlimited
         if max_listings is not None:
             self.max_listings = max_listings

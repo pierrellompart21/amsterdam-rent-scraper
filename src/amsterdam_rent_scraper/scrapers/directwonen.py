@@ -16,9 +16,9 @@ class DirectWonenScraper(PlaywrightBaseScraper):
     base_url = "https://directwonen.nl"
 
     def get_search_url(self, page_num: int = 1) -> str:
-        """Build search URL for Amsterdam rentals."""
-        # DirectWonen URL structure: /huurwoningen-huren/amsterdam?pageno=N
-        url = f"{self.base_url}/huurwoningen-huren/amsterdam"
+        """Build search URL for rentals."""
+        # DirectWonen URL structure: /huurwoningen-huren/{location}?pageno=N
+        url = f"{self.base_url}/huurwoningen-huren/{self.location}"
         if page_num > 1:
             url += f"?pageno={page_num}"
         return url
@@ -45,12 +45,12 @@ class DirectWonenScraper(PlaywrightBaseScraper):
                 soup = BeautifulSoup(html, "lxml")
 
                 # DirectWonen listing links follow pattern:
-                # /huurwoningen-huren/amsterdam/STREET/TYPE-ID
+                # /huurwoningen-huren/{location}/STREET/TYPE-ID
                 page_urls = []
                 for link in soup.select("a"):
                     href = link.get("href", "")
                     # Match listing URLs with ID suffix like appartement-509529
-                    if "/huurwoningen-huren/amsterdam/" in href:
+                    if f"/huurwoningen-huren/{self.location}/" in href:
                         # Must have property type + ID pattern
                         if re.search(r"/(appartement|studio|kamer|woning)-\d+", href):
                             full_url = urljoin(self.base_url, href)
@@ -99,13 +99,14 @@ class DirectWonenScraper(PlaywrightBaseScraper):
             data["property_type"] = type_mapping.get(type_match.group(1), type_match.group(1).title())
 
         # Title from URL - extract street name
-        # URL pattern: /huurwoningen-huren/amsterdam/STREET/TYPE-ID
-        url_match = re.search(r"/huurwoningen-huren/amsterdam/([^/]+)/(\w+)-\d+", url)
+        # URL pattern: /huurwoningen-huren/{location}/STREET/TYPE-ID
+        url_match = re.search(r"/huurwoningen-huren/(\w+)/([^/]+)/(\w+)-\d+", url)
         if url_match:
-            street = url_match.group(1).replace("-", " ").title()
-            prop_type = url_match.group(2).replace("-", " ").title()
-            data["title"] = f"{prop_type} - {street}, Amsterdam"
-            data["address"] = f"{street}, Amsterdam"
+            location = url_match.group(1).replace("-", " ").title()
+            street = url_match.group(2).replace("-", " ").title()
+            prop_type = url_match.group(3).replace("-", " ").title()
+            data["title"] = f"{prop_type} - {street}, {location}"
+            data["address"] = f"{street}, {location}"
 
         # Title - try multiple selectors (but these are often generic on DirectWonen)
         if "title" not in data:

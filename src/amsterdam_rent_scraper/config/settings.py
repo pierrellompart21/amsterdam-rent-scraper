@@ -67,10 +67,102 @@ CITIES: dict[str, CityConfig] = {
         transit_api="hsl",  # Helsinki Region Transport (HSL) Digitransit API
         enabled_scrapers=["sato", "oikotie", "lumo", "ta", "retta", "avara", "keva", "ovv"],  # Finnish rental scrapers
     ),
+    "stockholm": CityConfig(
+        name="Stockholm",
+        country="Sweden",
+        work_address="Vasagatan 12, 111 20 Stockholm, Sweden",
+        work_lat=59.3320,
+        work_lng=18.0590,
+        min_price=12000,  # SEK (approx 1000 EUR)
+        max_price=25000,  # SEK (approx 2000 EUR)
+        currency="SEK",
+        map_center_lat=59.3293,
+        map_center_lng=18.0686,
+        map_default_zoom=11,
+        transit_api="transitous",  # Transitous works for Sweden
+        enabled_scrapers=[
+            "blocket", "qasa", "samtrygg", "homeq", "bostadsportalen",
+            "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia"
+        ],
+    ),
 }
 
 # Default city
 DEFAULT_CITY = "amsterdam"
+
+# Cities within ~20km radius of Amsterdam for expanded search
+AMSTERDAM_AREA_LOCATIONS = [
+    "amsterdam",
+    "amstelveen",
+    "diemen",
+    "zaandam",
+    "haarlem",
+    "hoofddorp",
+    "aalsmeer",
+    "purmerend",
+    "uithoorn",
+    "weesp",
+]
+
+# Cities/municipalities within ~20km radius of Stockholm (Vasagatan 12)
+STOCKHOLM_AREA_LOCATIONS = [
+    "stockholm",
+    "solna",
+    "sundbyberg",
+    "nacka",
+    "lidingö",
+    "danderyd",
+    "järfälla",
+    "sollentuna",
+    "huddinge",
+    "bromma",
+    "täby",
+    "upplands väsby",
+]
+
+# Center coordinates for Amsterdam area locations (used as fallback when geocoding fails)
+LOCATION_CENTERS: dict[str, tuple[float, float]] = {
+    # Amsterdam area
+    "amsterdam": (52.3676, 4.9041),
+    "amstelveen": (52.3114, 4.8639),
+    "diemen": (52.3397, 4.9597),
+    "zaandam": (52.4381, 4.8268),
+    "haarlem": (52.3874, 4.6462),
+    "hoofddorp": (52.3025, 4.6889),
+    "aalsmeer": (52.2594, 4.7622),
+    "purmerend": (52.5050, 4.9597),
+    "uithoorn": (52.2350, 4.8267),
+    "weesp": (52.3072, 5.0422),
+    # Helsinki area
+    "helsinki": (60.1699, 24.9384),
+    "espoo": (60.2055, 24.6559),
+    "vantaa": (60.2934, 25.0378),
+    # Stockholm area
+    "stockholm": (59.3293, 18.0686),
+    "solna": (59.3600, 18.0000),
+    "sundbyberg": (59.3611, 17.9711),
+    "nacka": (59.3108, 18.1636),
+    "lidingö": (59.3667, 18.1500),
+    "danderyd": (59.3933, 18.0333),
+    "järfälla": (59.4333, 17.8333),
+    "sollentuna": (59.4281, 17.9508),
+    "huddinge": (59.2372, 17.9817),
+    "bromma": (59.3389, 17.9417),
+    "täby": (59.4439, 18.0689),
+    "upplands väsby": (59.5183, 17.9117),
+}
+
+
+def get_location_center(location: str) -> Optional[tuple[float, float]]:
+    """Get the center coordinates for a location name.
+
+    Args:
+        location: Location/city name (case-insensitive)
+
+    Returns:
+        Tuple of (latitude, longitude) or None if location unknown
+    """
+    return LOCATION_CENTERS.get(location.lower())
 
 
 def get_city_config(city: str = None) -> CityConfig:
@@ -129,6 +221,33 @@ EXCEL_FILENAME = "amsterdam_rentals.xlsx"
 HTML_FILENAME = "amsterdam_rentals.html"
 RAW_PAGES_DIR = OUTPUT_DIR / "raw_pages"
 DATABASE_PATH = OUTPUT_DIR / "listings.db"
+
+# === EMAIL NOTIFICATIONS ===
+# Configure these in environment variables or a .env file
+# SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_TO
+import os
+
+# Load .env file if python-dotenv is installed
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, use environment variables directly
+
+SMTP_CONFIG = {
+    "host": os.environ.get("SMTP_HOST", ""),
+    "port": int(os.environ.get("SMTP_PORT", "587")),
+    "user": os.environ.get("SMTP_USER", ""),
+    "password": os.environ.get("SMTP_PASSWORD", ""),
+    "from_email": os.environ.get("SMTP_FROM", ""),
+    "to_email": os.environ.get("SMTP_TO", ""),
+    "use_tls": os.environ.get("SMTP_USE_TLS", "true").lower() == "true",
+}
+
+
+def is_email_configured() -> bool:
+    """Check if email notifications are configured."""
+    return bool(SMTP_CONFIG["host"] and SMTP_CONFIG["user"] and SMTP_CONFIG["to_email"])
 
 
 @dataclass
@@ -380,6 +499,123 @@ RENTAL_SITES: list[RentalSite] = [
     # Additional Helsinki sites to implement:
     # - etuovi.com (Finnish housing marketplace - redirects to vuokraovi for rentals)
     # - a-kruunu.fi (affordable rentals, uses Knockout.js - complex to scrape)
+    # =====================
+    # STOCKHOLM (Sweden)
+    # =====================
+    RentalSite(
+        name="blocket",
+        base_url="https://www.blocket.se",
+        search_url_template=(
+            "https://www.blocket.se/annonser/stockholm/bostad/lagenheter"
+            "?cg=3020&r=11&st=u&f=p&ps={min_price}&pe={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.blocket.BlocketScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Sweden's largest classifieds. Huge rental section. Prices in SEK.",
+    ),
+    RentalSite(
+        name="qasa",
+        base_url="https://qasa.se",
+        search_url_template=(
+            "https://qasa.se/p2/hyra/lagenheter/stockholm"
+            "?rent_from={min_price}&rent_to={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.qasa.QasaScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Modern rental platform with verification. React/Next.js site.",
+    ),
+    RentalSite(
+        name="samtrygg",
+        base_url="https://www.samtrygg.se",
+        search_url_template="https://www.samtrygg.se/hyra-ut/lediga-lagenhet",
+        scraper_class="amsterdam_rent_scraper.scrapers.samtrygg.SamtryggScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental platform with tenant insurance included. Swedish only.",
+    ),
+    RentalSite(
+        name="homeq",
+        base_url="https://www.homeq.se",
+        search_url_template=(
+            "https://www.homeq.se/hyresratter/stockholm"
+            "?minPrice={min_price}&maxPrice={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.homeq.HomeQScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Digital rental platform. Queue-based system for verified listings.",
+    ),
+    RentalSite(
+        name="bostadsportalen",
+        base_url="https://www.bostadsportalen.se",
+        search_url_template=(
+            "https://www.bostadsportalen.se/hyresratter/stockholm"
+            "?priceFrom={min_price}&priceTo={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostadsportalen.BostadsportalenScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental listings aggregator. Mix of first-hand and second-hand rentals.",
+    ),
+    RentalSite(
+        name="hyresbostad",
+        base_url="https://www.hyresbostad.se",
+        search_url_template="https://www.hyresbostad.se/sok-bostad/stockholm/",
+        scraper_class="amsterdam_rent_scraper.scrapers.hyresbostad.HyressbostadScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental apartment listings. Subscription-based for full access.",
+    ),
+    RentalSite(
+        name="bovision",
+        base_url="https://www.bovision.se",
+        search_url_template=(
+            "https://www.bovision.se/hyra/stockholm"
+            "?minRent={min_price}&maxRent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bovision.BovisionScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Property portal with rentals. Also lists for sale properties.",
+    ),
+    RentalSite(
+        name="bostad_direkt",
+        base_url="https://www.bostaddirekt.com",
+        search_url_template=(
+            "https://www.bostaddirekt.com/hyra-lagenhet/stockholm"
+            "?rent_min={min_price}&rent_max={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostad_direkt.BostadDirektScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Direct rental listings. Mix of private and agency listings.",
+    ),
+    RentalSite(
+        name="hemavi",
+        base_url="https://hemavi.com",
+        search_url_template=(
+            "https://hemavi.com/sv/hyra/stockholm"
+            "?minRent={min_price}&maxRent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.hemavi.HemaviScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Rental marketplace. Newer platform with modern interface.",
+    ),
+    RentalSite(
+        name="renthia",
+        base_url="https://renthia.com",
+        search_url_template=(
+            "https://renthia.com/en/rent/stockholm"
+            "?minPrice={min_price}&maxPrice={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.renthia.RenthiaScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="International-friendly rental platform. English support.",
+    ),
 ]
 
 

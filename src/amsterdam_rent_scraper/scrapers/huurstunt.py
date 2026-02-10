@@ -16,9 +16,9 @@ class HuurstuntScraper(PlaywrightBaseScraper):
     base_url = "https://www.huurstunt.nl"
 
     def get_search_url(self) -> str:
-        """Build search URL for Amsterdam rentals."""
+        """Build search URL for rentals."""
         # Huurstunt doesn't support price filtering in URL, only city
-        return f"{self.base_url}/huren/amsterdam/"
+        return f"{self.base_url}/huren/{self.location}/"
 
     def get_listing_urls(self, page: Page) -> list[str]:
         """Scrape search results to get all listing URLs."""
@@ -39,12 +39,12 @@ class HuurstuntScraper(PlaywrightBaseScraper):
             soup = BeautifulSoup(html, "lxml")
 
             # Huurstunt listing URLs follow pattern:
-            # /appartement/huren/in/amsterdam/STREET/ID
-            # /kamer/huren/in/amsterdam/STREET/ID
+            # /appartement/huren/in/{location}/STREET/ID
+            # /kamer/huren/in/{location}/STREET/ID
             for link in soup.select("a"):
                 href = link.get("href", "")
-                # Match listing URLs: /TYPE/huren/in/amsterdam/STREET/ID
-                if re.match(r"^/(appartement|kamer|studio|woning)/huren/in/amsterdam/[^/]+/[a-zA-Z0-9]+$", href):
+                # Match listing URLs: /TYPE/huren/in/{location}/STREET/ID
+                if re.match(rf"^/(appartement|kamer|studio|woning)/huren/in/{self.location}/[^/]+/[a-zA-Z0-9]+$", href):
                     full_url = urljoin(self.base_url, href)
                     if full_url not in urls:
                         urls.append(full_url)

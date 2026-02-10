@@ -16,9 +16,9 @@ class HuureScraper(BaseScraper):
     base_url = "https://huure.nl"
 
     def get_search_url(self, cursor1: float = None, cursor2: int = None) -> str:
-        """Build search URL for Amsterdam apartments."""
+        """Build search URL for apartments."""
         # Huure.nl uses cursor-based pagination
-        url = f"{self.base_url}/apartments-for-rent/amsterdam"
+        url = f"{self.base_url}/apartments-for-rent/{self.location}"
         params = {}
         if self.min_price:
             params["min_rent"] = self.min_price

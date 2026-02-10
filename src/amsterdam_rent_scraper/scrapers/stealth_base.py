@@ -82,12 +82,14 @@ class StealthBaseScraper(abc.ABC):
         max_listings: int = None,
         headless: bool = True,
         locale: str = "en-US",
+        location: str = "amsterdam",
     ):
         self.min_price = min_price
         self.max_price = max_price
         self.test_mode = test_mode
         self.headless = headless
         self.locale = locale
+        self.location = location
 
         # Priority: explicit max_listings > test_mode default > unlimited
         if max_listings is not None:
