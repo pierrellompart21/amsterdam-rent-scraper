@@ -84,7 +84,8 @@ CITIES: dict[str, CityConfig] = {
         transit_api="transitous",  # Transitous works for Sweden
         enabled_scrapers=[
             "blocket", "qasa", "samtrygg", "homeq", "bostadsportalen",
-            "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia"
+            "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia",
+            "heimstaden"
         ],
     ),
 }
@@ -518,6 +519,15 @@ RENTAL_SITES: list[RentalSite] = [
         city="stockholm",
         needs_js=True,
         notes="International-friendly rental platform with English support.",
+    ),
+    RentalSite(
+        name="heimstaden",
+        base_url="https://mitt.heimstaden.com",
+        search_url_template="https://mitt.heimstaden.com/ledigt/lagenhet",
+        scraper_class="amsterdam_rent_scraper.scrapers.heimstaden.HeimstadenScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Major Swedish rental company with apartments in Stockholm and other cities. Vue.js site.",
     ),
 ]
 
