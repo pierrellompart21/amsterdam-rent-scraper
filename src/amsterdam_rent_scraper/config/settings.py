@@ -85,7 +85,8 @@ CITIES: dict[str, CityConfig] = {
         enabled_scrapers=[
             "blocket", "qasa", "samtrygg", "homeq", "bostadsportalen",
             "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia",
-            "heimstaden", "rentumo", "bostadsportal"
+            "heimstaden", "rentumo", "bostadsportal", "svenskabostader",
+            "bostadslistan", "residensportalen"
         ],
     ),
 }
@@ -552,6 +553,39 @@ RENTAL_SITES: list[RentalSite] = [
         city="stockholm",
         needs_js=True,
         notes="Swedish rental marketplace with 10,000+ listings. Server-rendered with JSON-LD structured data.",
+    ),
+    RentalSite(
+        name="svenskabostader",
+        base_url="https://www.svenskabostader.se",
+        search_url_template="https://www.svenskabostader.se/lediga-lagenheter/",
+        scraper_class="amsterdam_rent_scraper.scrapers.svenskabostader.SvenskabostaderScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Stockholm's major municipal housing company. Affordable public housing apartments.",
+    ),
+    RentalSite(
+        name="bostadslistan",
+        base_url="https://bostadslistan.se",
+        search_url_template=(
+            "https://bostadslistan.se/en/apartment-for-rent/stockholm"
+            "?min_rent={min_price}&max_rent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostadslistan.BostadslistanScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Swedish rental aggregator with 2000+ Stockholm listings from multiple sources.",
+    ),
+    RentalSite(
+        name="residensportalen",
+        base_url="https://www.residensportalen.com",
+        search_url_template=(
+            "https://www.residensportalen.com/objects/stockholm/stockholm/"
+            "?rent_from={min_price}&rent_to={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.residensportalen.ResidensportalenScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Estate agent rental portal. Direct contact with landlords, no hidden fees.",
     ),
 ]
 

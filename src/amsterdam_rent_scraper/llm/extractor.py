@@ -13,7 +13,6 @@ from amsterdam_rent_scraper.config.settings import (
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
 )
-from amsterdam_rent_scraper.llm.regex_fallback import regex_extract_from_html
 
 console = Console()
 
@@ -199,7 +198,11 @@ class OllamaExtractor:
             return False
 
     def extract_from_html(self, html: str, raw_data: dict = None, city: str = None) -> dict:
-        """Extract structured fields from HTML content using LLM with regex fallback."""
+        """Extract structured fields from HTML content using LLM only.
+
+        Converts page HTML directly to structured JSON via LLM extraction.
+        No regex fallback - pure LLM-based extraction for accuracy.
+        """
         text = extract_text_from_html(html)
 
         extraction_prompt = get_extraction_prompt(city)
@@ -226,9 +229,6 @@ class OllamaExtractor:
 
         except Exception as e:
             console.print(f"[red]LLM extraction failed: {e}[/]")
-
-        # Apply regex fallback to fill in any remaining missing fields
-        result = regex_extract_from_html(html, result)
 
         return result
 

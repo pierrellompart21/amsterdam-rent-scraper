@@ -26,7 +26,6 @@ from amsterdam_rent_scraper.config.settings import (
 from amsterdam_rent_scraper.export.excel import export_to_excel
 from amsterdam_rent_scraper.export.html_report import export_to_html
 from amsterdam_rent_scraper.llm.extractor import OllamaExtractor
-from amsterdam_rent_scraper.llm.regex_fallback import regex_extract_from_html
 from amsterdam_rent_scraper.models.listing import RentalListing
 from amsterdam_rent_scraper.storage.database import ListingDatabase
 from amsterdam_rent_scraper.utils.geo import enrich_listing_with_geo
@@ -294,7 +293,7 @@ def run_pipeline(
         save_checkpoint(output_dir, STAGE_LLM_EXTRACTION, all_listings, config=config)
         start_stage = STAGE_LLM_EXTRACTION
 
-    # LLM enrichment (or regex fallback)
+    # LLM extraction (page → LLM → JSON → storage)
     if start_stage == STAGE_LLM_EXTRACTION:
         if not skip_llm:
             console.print("\n[bold cyan]Running LLM extraction...[/]")
@@ -310,38 +309,18 @@ def run_pipeline(
                         progress.advance(task)
             else:
                 console.print(
-                    "[yellow]Skipping LLM extraction (Ollama not available)[/]"
+                    "[red]ERROR: Ollama not available. LLM extraction is required.[/]"
                 )
-                # Use regex fallback instead
-                console.print("[cyan]Using regex fallback extraction...[/]")
-                with create_progress() as progress:
-                    task = progress.add_task("Regex extraction", total=len(all_listings))
-                    for listing in all_listings:
-                        raw_path = listing.get("raw_page_path")
-                        if raw_path:
-                            try:
-                                with open(raw_path, "r", encoding="utf-8") as f:
-                                    html = f.read()
-                                listing.update(regex_extract_from_html(html, listing, city=city))
-                            except Exception:
-                                pass
-                        progress.advance(task)
+                console.print(
+                    "[yellow]Please start Ollama with: ollama serve[/]"
+                )
+                console.print(
+                    "[yellow]Then pull the model: ollama pull llama3.2[/]"
+                )
+                return []
         else:
-            console.print("[dim]Skipping LLM extraction (--skip-llm)[/]")
-            # Still apply regex fallback for basic field extraction
-            console.print("[cyan]Using regex fallback extraction...[/]")
-            with create_progress() as progress:
-                task = progress.add_task("Regex extraction", total=len(all_listings))
-                for listing in all_listings:
-                    raw_path = listing.get("raw_page_path")
-                    if raw_path:
-                        try:
-                            with open(raw_path, "r", encoding="utf-8") as f:
-                                html = f.read()
-                            listing.update(regex_extract_from_html(html, listing, city=city))
-                        except Exception:
-                            pass
-                    progress.advance(task)
+            console.print("[yellow]Skipping LLM extraction (--skip-llm)[/]")
+            console.print("[dim]Note: Listings will have minimal extracted data[/]")
 
         # Save checkpoint after LLM extraction
         save_checkpoint(output_dir, STAGE_FILTERING, all_listings, config=config)
