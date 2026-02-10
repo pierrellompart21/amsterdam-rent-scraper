@@ -86,7 +86,8 @@ CITIES: dict[str, CityConfig] = {
             "blocket", "qasa", "samtrygg", "homeq", "bostadsportalen",
             "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia",
             "heimstaden", "rentumo", "bostadsportal", "svenskabostader",
-            "bostadslistan", "residensportalen"
+            "bostadslistan", "residensportalen", "nestpick", "rentberry",
+            "bostadszonen"
         ],
     ),
 }
@@ -586,6 +587,39 @@ RENTAL_SITES: list[RentalSite] = [
         city="stockholm",
         needs_js=True,
         notes="Estate agent rental portal. Direct contact with landlords, no hidden fees.",
+    ),
+    RentalSite(
+        name="nestpick",
+        base_url="https://www.nestpick.com",
+        search_url_template="https://www.nestpick.com/stockholm/",
+        scraper_class="amsterdam_rent_scraper.scrapers.nestpick.NestpickScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="International furnished apartment platform. 689+ listings, expat-friendly.",
+    ),
+    RentalSite(
+        name="rentberry",
+        base_url="https://rentberry.com",
+        search_url_template=(
+            "https://rentberry.com/se/apartments/s/stockholm-sweden"
+            "?price_from={min_price}&price_to={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.rentberry.RentberryScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Verified listings with transparent pricing and online comparison.",
+    ),
+    RentalSite(
+        name="bostadszonen",
+        base_url="https://bostadszonen.se",
+        search_url_template=(
+            "https://bostadszonen.se/sok?locale=en&city=stockholm"
+            "&rent_min={min_price}&rent_max={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.bostadszonen.BostadszonenScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Swedish national housing portal with strong Stockholm coverage.",
     ),
 ]
 
