@@ -85,7 +85,7 @@ CITIES: dict[str, CityConfig] = {
         enabled_scrapers=[
             "blocket", "qasa", "samtrygg", "homeq", "bostadsportalen",
             "hyresbostad", "bovision", "bostad_direkt", "hemavi", "renthia",
-            "heimstaden"
+            "heimstaden", "rentumo"
         ],
     ),
 }
@@ -528,6 +528,18 @@ RENTAL_SITES: list[RentalSite] = [
         city="stockholm",
         needs_js=True,
         notes="Major Swedish rental company with apartments in Stockholm and other cities. Vue.js site.",
+    ),
+    RentalSite(
+        name="rentumo",
+        base_url="https://rentumo.se",
+        search_url_template=(
+            "https://rentumo.se/en/rentals/stockholm"
+            "?min_rent={min_price}&max_rent={max_price}"
+        ),
+        scraper_class="amsterdam_rent_scraper.scrapers.rentumo.RentumoScraper",
+        city="stockholm",
+        needs_js=True,
+        notes="Swedish rental aggregator with 1300+ Stockholm listings. Server-rendered with Turbo/Rails.",
     ),
 ]
 
